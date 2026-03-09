@@ -35,7 +35,7 @@ export default function Dashboard({ setPage }: Props) {
       
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">EduAnalytics Dashboard</h1>
+        <h1 className="text-3xl font-bold">Student Performance Dashboard</h1>
         <button
           onClick={() => setPage("home")}
           className="bg-red-500 text-white px-4 py-2 rounded-xl"

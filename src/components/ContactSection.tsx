@@ -7,22 +7,43 @@ export default function ContactSection() {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
 
-    if (!name || !email || !message) {
-      alert("Please fill all fields")
-      return
-    }
-
-    console.log({ name, email, message })
-    alert("Message sent successfully!")
-
-    setName("")
-    setEmail("")
-    setMessage("")
+  if (!name || !email || !message) {
+    alert("Please fill all fields")
+    return
   }
 
+  try {
+
+    await fetch(
+      "https://script.google.com/macros/s/AKfycbwGCKGlosVYLY8JoYCwaKC5I1XG_S7JJS-HrvABzqmZt67RLa3T9KHUSS8v1xf-yhWXbw/exec",
+      {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          message
+        })
+      }
+    )
+
+    alert("Message sent successfully!")
+
+  } catch (error) {
+    console.error(error)
+    alert("Error sending message")
+  }
+
+  setName("")
+  setEmail("")
+  setMessage("")
+}
   return (
     <section
       id="contact"
@@ -112,3 +133,5 @@ export default function ContactSection() {
     </section>
   )
 }
+
+
