@@ -1,4 +1,5 @@
 import type { Page } from "../app/App"
+import Navbar from "../components/Navbar"
 import {
   AreaChart,
   Area,
@@ -30,68 +31,85 @@ const domainData = [
 ]
 
 export default function Dashboard({ setPage }: Props) {
-  return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Student Performance Dashboard</h1>
-        <button
-          onClick={() => setPage("home")}
-          className="bg-red-500 text-white px-4 py-2 rounded-xl"
-        >
-          Logout
-        </button>
-      </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+const loggedIn = localStorage.getItem("spa_loggedin")
 
-        {/* Semester Performance */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <h2 className="text-lg font-bold mb-4">
-            Semester Performance
-          </h2>
+if(!loggedIn){
+setPage("login")
+return null
+}
 
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={semesterData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="score"
-                stroke="#3B82F6"
-                fill="#93C5FD"
-                strokeWidth={3}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+return (
 
-          <div className="mt-4 flex gap-8 text-sm">
-            <p>Avg Grade: <span className="font-bold">85%</span></p>
-            <p>Attendance: <span className="font-bold text-green-600">92%</span></p>
-          </div>
-        </div>
+<div>
 
-        {/* Domain-wise Scores */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <h2 className="text-lg font-bold mb-4">
-            Domain-Wise Scores
-          </h2>
+<Navbar setPage={setPage} />
 
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={domainData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="score" fill="#6366F1" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+<div className="min-h-screen bg-slate-50 p-8">
 
-      </div>
-    </div>
-  )
+<div className="flex justify-between items-center mb-8">
+
+<h1 className="text-3xl font-bold">
+Student Performance Dashboard
+</h1>
+
+</div>
+
+<div className="grid lg:grid-cols-2 gap-6">
+
+<div className="bg-white p-6 rounded-2xl shadow-sm border">
+
+<h2 className="text-lg font-bold mb-4">
+Semester Performance
+</h2>
+
+<ResponsiveContainer width="100%" height={250}>
+<AreaChart data={semesterData}>
+<CartesianGrid strokeDasharray="3 3"/>
+<XAxis dataKey="name"/>
+<YAxis/>
+<Tooltip/>
+<Area
+type="monotone"
+dataKey="score"
+stroke="#3B82F6"
+fill="#93C5FD"
+strokeWidth={3}
+/>
+</AreaChart>
+</ResponsiveContainer>
+
+<div className="mt-4 flex gap-8 text-sm">
+<p>Avg Grade: <span className="font-bold">85%</span></p>
+<p>Attendance: <span className="font-bold text-green-600">92%</span></p>
+</div>
+
+</div>
+
+<div className="bg-white p-6 rounded-2xl shadow-sm border">
+
+<h2 className="text-lg font-bold mb-4">
+Domain-Wise Scores
+</h2>
+
+<ResponsiveContainer width="100%" height={250}>
+<BarChart data={domainData}>
+<CartesianGrid strokeDasharray="3 3"/>
+<XAxis dataKey="name"/>
+<YAxis/>
+<Tooltip/>
+<Bar dataKey="score" fill="#6366F1" radius={[8,8,0,0]}/>
+</BarChart>
+</ResponsiveContainer>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+)
+
 }
