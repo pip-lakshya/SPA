@@ -9,20 +9,22 @@ export default function Signup({setPage}:Props){
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 
-const handleSignup = ()=>{
+const handleSignup = async () => {
 
- if(!email || !password){
-  alert("Fill all fields")
-  return
+ const res = await fetch("http://localhost:5000/api/auth/signup",{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({ email, password })
+ })
+
+ const data = await res.json()
+
+ if(data.message === "Signup successful"){
+  alert("Account created")
+  setPage("login")
+ } else {
+  alert(data.message)
  }
-
- const user = {email,password}
-
- localStorage.setItem("spa_user",JSON.stringify(user))
-
- alert("Account created successfully")
-
- setPage("login")
 }
 
 return(

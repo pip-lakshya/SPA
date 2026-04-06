@@ -7,7 +7,11 @@ import Dashboard from "../pages/Dashboard"
 export type Page = "home" | "login" | "signup" | "dashboard"
 
 export default function App() {
-  const [page, setPage] = useState<Page>("home")
+
+  const [page, setPage] = useState<Page>(() => {
+    const token = localStorage.getItem("token")
+    return token ? "dashboard" : "home"
+  })
 
   return (
     <>

@@ -1,5 +1,6 @@
 import type { Page } from "../app/App"
 import Navbar from "../components/Navbar"
+import { useEffect } from "react"
 import {
   AreaChart,
   Area,
@@ -32,12 +33,14 @@ const domainData = [
 
 export default function Dashboard({ setPage }: Props) {
 
-const loggedIn = localStorage.getItem("spa_loggedin")
+  useEffect(() => {
+    const token = localStorage.getItem("token")
 
-if(!loggedIn){
-setPage("login")
-return null
-}
+    if (!token) {
+      setPage("login")
+    }
+  }, [])
+
 
 return (
 
