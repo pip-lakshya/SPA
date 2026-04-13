@@ -31,7 +31,7 @@ export async function completeGoogleSignIn(
       alert(
         res.ok
           ? "Invalid response from server"
-          : `Could not reach the API (${res.status}). Is the backend running on port 5000?`
+          : `Could not reach the API (${res.status}). Is the backend running?`
       )
       return
     }

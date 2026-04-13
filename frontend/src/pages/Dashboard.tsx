@@ -26,6 +26,7 @@ import AcademicForm from "../components/AcademicForm"
 import Leaderboard from "../components/Leaderboard"
 import { domainKeyToLabelMap } from "../data/academicCatalog"
 import type { AcademicSnapshot, PeerClusterStudent } from "../types/academic"
+import { apiUrl } from "../lib/apiUrl"
 
 type Props = {
   setPage: React.Dispatch<React.SetStateAction<Page>>
@@ -130,7 +131,7 @@ export default function Dashboard({ setPage }: Props) {
 
       try {
         setClusterError("")
-        const res = await fetch("http://localhost:5000/api/data/cluster/me", {
+        const res = await fetch(apiUrl("/api/data/cluster/me"), {
           headers: {
             Authorization: token
           }

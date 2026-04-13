@@ -6,8 +6,9 @@ import {
   type DomainOption
 } from "../data/academicCatalog"
 import type { MarksheetOcrResponse } from "../types/academic"
+import { apiUrl } from "../lib/apiUrl"
 
-const API_URL = "http://localhost:5000/api/marksheet/upload"
+const uploadUrl = () => apiUrl("/api/marksheet/upload")
 
 type DraftRow = {
   id: string
@@ -109,7 +110,7 @@ export default function MarksheetUpload({
       const body = new FormData()
       body.append("marksheet", file)
 
-      const res = await fetch(API_URL, {
+      const res = await fetch(uploadUrl(), {
         method: "POST",
         headers: {
           Authorization: token

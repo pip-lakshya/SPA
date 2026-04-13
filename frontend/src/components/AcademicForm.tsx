@@ -13,8 +13,10 @@ import {
 } from "../data/academicCatalog"
 import type { AcademicApiResponse, AcademicSnapshot } from "../types/academic"
 import MarksheetUpload from "./MarksheetUpload"
+import { apiUrl } from "../lib/apiUrl"
 
-const API_BASE_URL = "http://localhost:5000/api/data"
+const DATA_BASE_PATH = "/api/data"
+const dataUrl = (path: string) => apiUrl(`${DATA_BASE_PATH}${path}`)
 
 type SubjectForm = {
   selectedSubject: string
@@ -230,7 +232,7 @@ export default function AcademicForm({ onDataChange }: Props) {
       }
 
       try {
-        const res = await fetch(`${API_BASE_URL}/me`, {
+        const res = await fetch(dataUrl("/me"), {
           headers: {
             Authorization: token
           }
@@ -504,7 +506,7 @@ export default function AcademicForm({ onDataChange }: Props) {
         cgpa: Number(cgpa)
       }
 
-      const res = await fetch(`${API_BASE_URL}/save`, {
+      const res = await fetch(dataUrl("/save"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
