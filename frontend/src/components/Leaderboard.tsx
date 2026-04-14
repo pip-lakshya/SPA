@@ -34,7 +34,7 @@ export default function Leaderboard({ title = "Leaderboard" }: Props) {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/data/leaderboard", {
+        const res = await fetch("https://spa-backend-lfv3.onrender.com/api/data/leaderboard", {
           headers: {
             Authorization: token
           }
@@ -101,7 +101,7 @@ export default function Leaderboard({ title = "Leaderboard" }: Props) {
                     </p>
                     <p className="mt-1 text-xs text-slate-500">{entry.email}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.15em] text-slate-500">
-                      {entry.department || "Department not set"} • {entry.branch || "Branch not set"}
+                      {entry.department || "Department not set"} ï¿½ {entry.branch || "Branch not set"}
                     </p>
                   </div>
                   <div className="text-right">
