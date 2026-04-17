@@ -9,6 +9,8 @@ import {
   getSemesterOptions,
   getSubjectOptions,
   inferDomainForSubject,
+  normalizeDomainLabel,
+  toApiDomainLabel,
   type DomainOption
 } from "../data/academicCatalog"
 import type { AcademicApiResponse, AcademicSnapshot } from "../types/academic"
@@ -77,7 +79,7 @@ const mapFetchedSemester = (
     customSubject: suggestedSubject ? "" : subjectName,
     domain: DOMAIN_OPTIONS.includes((subject.domain || "") as DomainOption)
       ? (subject.domain as DomainOption)
-      : inferredDomain,
+      : normalizeDomainLabel(inferredDomain || subject.domain || "General"),
     marks: typeof subject.marks === "number" ? subject.marks.toString() : ""
   }
 }
@@ -307,7 +309,9 @@ export default function AcademicForm({ onDataChange }: Props) {
                     template || subject.selectedSubject !== CUSTOM_SUBJECT_VALUE
                       ? ""
                       : subject.customSubject,
-                  domain: template?.domain || inferDomainForSubject(currentName) || subject.domain,
+                  domain: normalizeDomainLabel(
+                    inferDomainForSubject(currentName) || template?.domain || subject.domain
+                  ),
                   marks: subject.marks
                 }
               })
@@ -353,7 +357,9 @@ export default function AcademicForm({ onDataChange }: Props) {
                 template || subject.selectedSubject !== CUSTOM_SUBJECT_VALUE
                   ? ""
                   : subject.customSubject,
-              domain: template?.domain || inferDomainForSubject(subjectName) || subject.domain
+              domain: normalizeDomainLabel(
+                inferDomainForSubject(subjectName) || template?.domain || subject.domain
+              )
             }
           })
         }
@@ -387,7 +393,9 @@ export default function AcademicForm({ onDataChange }: Props) {
                   ...subject,
                   selectedSubject: CUSTOM_SUBJECT_VALUE,
                   customSubject: "",
-                  domain: inferDomainForSubject(subject.customSubject) || subject.domain
+                  domain: normalizeDomainLabel(
+                    inferDomainForSubject(subject.customSubject) || subject.domain
+                  )
                 }
               }
 
@@ -397,7 +405,9 @@ export default function AcademicForm({ onDataChange }: Props) {
                 ...subject,
                 selectedSubject: value,
                 customSubject: "",
-                domain: template?.domain || inferDomainForSubject(value) || subject.domain
+                domain: normalizeDomainLabel(
+                  inferDomainForSubject(value) || template?.domain || subject.domain
+                )
               }
             }
 
@@ -405,7 +415,7 @@ export default function AcademicForm({ onDataChange }: Props) {
               return {
                 ...subject,
                 customSubject: value,
-                domain: inferDomainForSubject(value) || subject.domain
+                domain: normalizeDomainLabel(inferDomainForSubject(value) || subject.domain)
               }
             }
 
@@ -499,7 +509,7 @@ export default function AcademicForm({ onDataChange }: Props) {
           sgpa: Number(semester.sgpa),
           subjects: semester.subjects.map((subject) => ({
             name: getSubjectName(subject),
-            domain: subject.domain,
+            domain: toApiDomainLabel(subject.domain),
             marks: Number(subject.marks)
           }))
         })),
@@ -578,7 +588,7 @@ export default function AcademicForm({ onDataChange }: Props) {
 
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-6">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
             Academic Input
@@ -591,16 +601,6 @@ export default function AcademicForm({ onDataChange }: Props) {
             subject names, and you can still override the domain if needed.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={addSemester}
-          disabled={!canAddSemester}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Add Semester
-        </button>
       </div>
 
       {loading ? (
@@ -673,7 +673,7 @@ export default function AcademicForm({ onDataChange }: Props) {
                 key={`${semester.semester}-${semesterIndex}`}
                 className="rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-5"
               >
-                <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_auto_auto] lg:items-end">
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-end">
                   <label className="block text-sm font-medium text-slate-700">
                     Semester
                     <select
@@ -706,15 +706,6 @@ export default function AcademicForm({ onDataChange }: Props) {
                       placeholder="8.40"
                     />
                   </label>
-
-                  <button
-                    type="button"
-                    onClick={() => addSubject(semesterIndex)}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Subject
-                  </button>
 
                   <button
                     type="button"
@@ -845,6 +836,17 @@ export default function AcademicForm({ onDataChange }: Props) {
                     )
                   })}
                 </div>
+
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => addSubject(semesterIndex)}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Subject
+                  </button>
+                </div>
               </div>
             )
           })}
@@ -870,7 +872,16 @@ export default function AcademicForm({ onDataChange }: Props) {
             </div>
           ) : null}
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={addSemester}
+              disabled={!canAddSemester}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add Semester
+            </button>
             <button
               type="submit"
               disabled={isSubmitDisabled}

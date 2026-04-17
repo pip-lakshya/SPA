@@ -1,4 +1,11 @@
 const AcademicData = require("../models/AcademicData")
+const {
+  ALLOWED_DOMAINS,
+  canonicalizeDomain,
+  classifySubject,
+  getOverrideMap,
+  recordOverride
+} = require("../utils/domainClassifier")
 
 const ALLOWED_DEPARTMENTS = [
   "Information Technology (IT)",
@@ -10,24 +17,20 @@ const ALLOWED_DEPARTMENTS = [
   "MBA / Management"
 ]
 
-const ALLOWED_DOMAINS = [
-  "Mathematics",
-  "Core Engineering",
-  "Computer Science / IT",
-  "Electronics / Electrical",
-  "Mechanical / Civil",
-  "AI / Data Science",
-  "Management / Humanities",
-  "General"
-]
-
 const DOMAIN_KEY_MAP = {
   Mathematics: "Mathematics",
+  Programming: "CS_IT",
+  "AI/DS / IT": "AI_DS_IT",
+  "Core CS": "CoreEngineering",
+  Electronics: "Electronics",
+  Science: "AI_DS",
+  Mechanical: "Mechanical_Civil",
+  "Soft Skills": "Management",
   "Core Engineering": "CoreEngineering",
   "Computer Science / IT": "CS_IT",
   "Electronics / Electrical": "Electronics",
   "Mechanical / Civil": "Mechanical_Civil",
-  "AI / Data Science": "AI_DS",
+  "AI / Data Science": "AI_DS_IT",
   "Management / Humanities": "Management",
   General: "General"
 }
@@ -36,6 +39,7 @@ const createEmptyDomainAverages = () => ({
   Mathematics: 0,
   CoreEngineering: 0,
   CS_IT: 0,
+  AI_DS_IT: 0,
   Electronics: 0,
   Mechanical_Civil: 0,
   AI_DS: 0,
@@ -64,7 +68,8 @@ const toDisplayName = (user) => {
 
 const normalizeSubject = (subject) => ({
   name: String(subject?.name || "").trim(),
-  domain: String(subject?.domain || "").trim(),
+  domain:
+    canonicalizeDomain(String(subject?.domain || "").trim()) || "General",
   marks: Number(subject?.marks)
 })
 
@@ -186,6 +191,8 @@ const validatePayload = ({ department, branch, cgpa, semesters }) => {
     }
 
     for (const subject of semester.subjects) {
+      subject.domain = canonicalizeDomain(subject.domain) || "General"
+
       if (!subject.name) {
         return "Each subject must have a name"
       }
@@ -227,6 +234,21 @@ const saveAcademicData = async (req, res) => {
 
     if (validationError) {
       return res.status(400).json({ message: validationError })
+    }
+
+    const overrideMap = await getOverrideMap()
+
+    for (const semester of semesters) {
+      for (const subject of semester.subjects) {
+        const classified = classifySubject(subject.name, { overrideMap })
+        if (classified.domain !== subject.domain) {
+          await recordOverride(subject.name, subject.domain)
+          overrideMap[classified.normalized] = {
+            domain: subject.domain,
+            count: (overrideMap[classified.normalized]?.count || 0) + 1
+          }
+        }
+      }
     }
 
     const { overallAverage, domainAverages, semesterAverages } =

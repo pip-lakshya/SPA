@@ -57,6 +57,10 @@ const domainAveragesSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    AI_DS_IT: {
+      type: Number,
+      default: 0
+    },
     Electronics: {
       type: Number,
       default: 0

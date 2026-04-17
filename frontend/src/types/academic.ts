@@ -14,6 +14,7 @@ export type DomainAverages = {
   Mathematics?: number
   CoreEngineering?: number
   CS_IT?: number
+  AI_DS_IT?: number
   Electronics?: number
   Mechanical_Civil?: number
   AI_DS?: number

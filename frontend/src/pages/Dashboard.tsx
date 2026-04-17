@@ -553,33 +553,35 @@ export default function Dashboard({ setPage }: Props) {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                  <BrainCircuit className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">ML Insights</h2>
+                  <p className="text-sm text-slate-500">Future-model ready placeholder</p>
+                </div>
+              </div>
+              <div className="mt-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-6 text-center">
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">
+                  AI Insights Coming Soon
+                </p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  The saved structure is now ready for trend prediction, weak-domain detection,
+                  and subject recommendation models in a future iteration.
+                </p>
+              </div>
+            </section>
+            <Leaderboard />
+          </section>
+
+          <section id="academic-input">
             <AcademicForm onDataChange={setSnapshot} />
-            <div className="space-y-6">
-              <Leaderboard />
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-                    <BrainCircuit className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">ML Insights</h2>
-                    <p className="text-sm text-slate-500">Future-model ready placeholder</p>
-                  </div>
-                </div>
-                <div className="mt-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-6 text-center">
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">
-                    AI Insights Coming Soon
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    The saved structure is now ready for trend prediction, weak-domain detection,
-                    and subject recommendation models in a future iteration.
-                  </p>
-                </div>
-              </section>
-            </div>
           </section>
         </div>
       </main>
+
     </div>
   )
 }

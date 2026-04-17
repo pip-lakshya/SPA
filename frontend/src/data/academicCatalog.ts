@@ -1,15 +1,41 @@
 export const DOMAIN_OPTIONS = [
   "Mathematics",
-  "Core Engineering",
-  "Computer Science / IT",
-  "Electronics / Electrical",
-  "Mechanical / Civil",
-  "AI / Data Science",
-  "Management / Humanities",
+  "Programming",
+  "AI/DS / IT",
+  "Core CS",
+  "Electronics",
+  "Science",
+  "Mechanical",
+  "Soft Skills",
   "General"
 ] as const
 
-export type DomainOption = (typeof DOMAIN_OPTIONS)[number]
+export type DomainOption = string
+
+const LEGACY_DOMAIN_ALIASES: Record<string, DomainOption> = {
+  "Computer Science / IT": "Programming",
+  "Core Engineering": "Core CS",
+  "Electronics / Electrical": "Electronics",
+  "AI / Data Science": "AI/DS / IT",
+  "Mechanical / Civil": "Mechanical",
+  "Management / Humanities": "Soft Skills"
+}
+
+export const normalizeDomainLabel = (domain?: string): DomainOption =>
+  LEGACY_DOMAIN_ALIASES[String(domain || "").trim()] || String(domain || "General").trim()
+
+const API_DOMAIN_ALIASES: Record<string, string> = {
+  Programming: "Computer Science / IT",
+  "AI/DS / IT": "AI / Data Science",
+  "Core CS": "Core Engineering",
+  Electronics: "Electronics / Electrical",
+  Mechanical: "Mechanical / Civil",
+  "Soft Skills": "Management / Humanities",
+  Science: "General"
+}
+
+export const toApiDomainLabel = (domain?: string) =>
+  API_DOMAIN_ALIASES[String(domain || "").trim()] || String(domain || "General").trim()
 
 export type SubjectTemplate = {
   name: string
@@ -394,19 +420,27 @@ export const findSubjectTemplate = (
   )
 
 const normalizeSubjectKey = (subjectName: string) =>
-  subjectName.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+  subjectName
+    .toLowerCase()
+    .replace(/\b(?=[ivxlcdm]+\b)m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 
 const SUBJECT_DOMAIN_ALIASES: Record<string, DomainOption> = {
   "engineering mathematics": "Mathematics",
-  "data structures": "Computer Science / IT",
-  "operating systems": "Computer Science / IT",
-  "operating system": "Computer Science / IT",
-  "dbms": "Computer Science / IT",
-  "database management systems": "Computer Science / IT",
-  "computer networks": "Computer Science / IT",
-  "digital electronics": "Electronics / Electrical",
-  "machine learning": "AI / Data Science",
-  "machine learning fundamentals": "AI / Data Science"
+  "data structures": "Programming",
+  "operating systems": "Core CS",
+  "operating system": "Core CS",
+  dbms: "Core CS",
+  "database management systems": "Core CS",
+  "computer networks": "Core CS",
+  "digital electronics": "Electronics",
+  "machine learning": "AI/DS / IT",
+  "machine learning fundamentals": "AI/DS / IT",
+  "artificial intelligence": "AI/DS / IT",
+  "data science": "AI/DS / IT",
+  "big data analytics": "AI/DS / IT"
 }
 
 export const subjectDomainMap = Object.values(ACADEMIC_CATALOG).reduce<
@@ -414,23 +448,180 @@ export const subjectDomainMap = Object.values(ACADEMIC_CATALOG).reduce<
 >((accumulator, department) => {
   Object.values(department.semesters).forEach((subjects) => {
     subjects.forEach((subject) => {
-      accumulator[normalizeSubjectKey(subject.name)] = subject.domain
+      accumulator[normalizeSubjectKey(subject.name)] = normalizeDomainLabel(subject.domain)
     })
   })
 
   return accumulator
 }, { ...SUBJECT_DOMAIN_ALIASES })
 
-export const inferDomainForSubject = (subjectName: string): DomainOption | undefined =>
-  subjectDomainMap[normalizeSubjectKey(subjectName)]
+const DOMAIN_KEYWORDS: Record<DomainOption, string[]> = {
+  Mathematics: [
+    "engineering mathematics",
+    "mathematics",
+    "maths",
+    "statistics",
+    "probability",
+    "linear algebra",
+    "discrete mathematics"
+  ],
+  "Core CS": [
+    "core engineering",
+    "core cs",
+    "engineering mechanics",
+    "control systems",
+    "environmental engineering",
+    "software engineering",
+    "operating systems",
+    "operating system",
+    "dbms",
+    "database management",
+    "computer networks",
+    "cn"
+  ],
+  Programming: [
+    "programming",
+    "programming in c",
+    "c programming",
+    "c language",
+    "c plus plus",
+    "cpp",
+    "java",
+    "python",
+    "javascript",
+    "data structure",
+    "data structures",
+    "algorithm",
+    "algorithms",
+    "object oriented",
+    "oop",
+    "problem solving",
+    "software engineering",
+    "operating systems",
+    "operating system",
+    "dbms",
+    "database management",
+    "computer networks"
+  ],
+  "AI/DS / IT": [
+    "artificial intelligence",
+    "machine learning",
+    "deep learning",
+    "data science",
+    "data mining",
+    "big data",
+    "analytics",
+    "business intelligence",
+    "natural language processing",
+    "nlp",
+    "information technology",
+    "it",
+    "cloud computing",
+    "information security",
+    "cyber security",
+    "internet of things",
+    "iot"
+  ],
+  Electronics: [
+    "electrical",
+    "electronics",
+    "circuits",
+    "circuit",
+    "digital electronics",
+    "digital logic"
+  ],
+  Mechanical: [
+    "mechanical",
+    "workshop",
+    "manufacturing",
+    "engineering graphics",
+    "caeg",
+    "camd",
+    "civil"
+  ],
+  Science: [
+    "physics",
+    "chemistry",
+    "environmental science",
+    "environmental studies",
+    "environmental"
+  ],
+  "Soft Skills": [
+    "communication skills",
+    "technical communication",
+    "public speaking",
+    "human values",
+    "literature",
+    "management",
+    "economics",
+    "ethics"
+  ],
+  General: ["physics", "chemistry", "environmental science", "sodeca"]
+}
+
+const DOMAIN_PRIORITY: DomainOption[] = [
+  "Programming",
+  "AI/DS / IT",
+  "Mathematics",
+  "Core CS",
+  "Electronics",
+  "Science",
+  "Mechanical",
+  "Soft Skills",
+  "General"
+]
+
+const scoreKeywordMatch = (subject: string, keyword: string) => {
+  if (subject === keyword) return 1
+  if (subject.includes(keyword)) return Math.max(0.8, keyword.length / Math.max(subject.length, 1))
+
+  const subjectTokens = subject.split(" ").filter(Boolean)
+  const keywordTokens = keyword.split(" ").filter(Boolean)
+  const overlap = keywordTokens.filter((token) => subjectTokens.includes(token)).length
+
+  if (!overlap) return 0
+
+  const tokenCoverage = overlap / keywordTokens.length
+  const density = overlap / Math.max(subjectTokens.length, keywordTokens.length)
+  return Math.max(tokenCoverage * 0.7 + density * 0.3, 0.45)
+}
+
+export const inferDomainForSubject = (subjectName: string): DomainOption | undefined => {
+  const normalized = normalizeSubjectKey(subjectName)
+  if (!normalized) return undefined
+
+  const direct = subjectDomainMap[normalized]
+  if (direct) return direct
+
+  let bestDomain: DomainOption | undefined
+  let bestScore = 0
+
+  for (const domain of DOMAIN_PRIORITY) {
+    for (const keyword of DOMAIN_KEYWORDS[domain]) {
+      const score = scoreKeywordMatch(normalized, normalizeSubjectKey(keyword))
+      if (
+        score > bestScore ||
+        (score === bestScore &&
+          bestDomain &&
+          DOMAIN_PRIORITY.indexOf(domain) < DOMAIN_PRIORITY.indexOf(bestDomain))
+      ) {
+        bestScore = score
+        bestDomain = domain
+      }
+    }
+  }
+
+  return bestScore >= 0.55 ? bestDomain : undefined
+}
 
 export const domainKeyToLabelMap: Record<string, string> = {
   Mathematics: "Mathematics",
-  CoreEngineering: "Core Engineering",
-  CS_IT: "Computer Science / IT",
-  Electronics: "Electronics / Electrical",
-  Mechanical_Civil: "Mechanical / Civil",
-  AI_DS: "AI / Data Science",
-  Management: "Management / Humanities",
+  CoreEngineering: "Core CS",
+  CS_IT: "Programming",
+  AI_DS_IT: "AI/DS / IT",
+  Electronics: "Electronics",
+  Mechanical_Civil: "Mechanical",
+  AI_DS: "Science",
+  Management: "Soft Skills",
   General: "General"
 }

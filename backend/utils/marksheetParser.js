@@ -3,61 +3,8 @@
  * Domains match frontend DOMAIN_OPTIONS / backend ALLOWED_DOMAINS.
  */
 
-const ALLOWED_DOMAINS = new Set([
-  "Mathematics",
-  "Core Engineering",
-  "Computer Science / IT",
-  "Electronics / Electrical",
-  "Mechanical / Civil",
-  "AI / Data Science",
-  "Management / Humanities",
-  "General"
-])
-
-/** Longer phrases first so "data structures" wins over "data". */
-const SUBJECT_KEYWORD_TO_DOMAIN = [
-  ["data structures", "Computer Science / IT"],
-  ["data structure", "Computer Science / IT"],
-  ["object oriented", "Computer Science / IT"],
-  ["operating systems", "Computer Science / IT"],
-  ["operating system", "Computer Science / IT"],
-  ["computer networks", "Computer Science / IT"],
-  ["database management", "Computer Science / IT"],
-  ["machine learning", "AI / Data Science"],
-  ["artificial intelligence", "AI / Data Science"],
-  ["deep learning", "AI / Data Science"],
-  ["data science", "AI / Data Science"],
-  ["probability", "AI / Data Science"],
-  ["statistics", "AI / Data Science"],
-  ["programming", "Computer Science / IT"],
-  ["algorithms", "Computer Science / IT"],
-  ["algorithm", "Computer Science / IT"],
-  ["software", "Computer Science / IT"],
-  ["compiler", "Computer Science / IT"],
-  ["web technologies", "Computer Science / IT"],
-  ["computer graphics", "Computer Science / IT"],
-  ["digital logic", "Electronics / Electrical"],
-  ["basic electronics", "Electronics / Electrical"],
-  ["electronics", "Electronics / Electrical"],
-  ["electrical", "Electronics / Electrical"],
-  ["engineering mathematics", "Mathematics"],
-  ["discrete mathematics", "Mathematics"],
-  ["linear algebra", "Mathematics"],
-  ["numerical methods", "Mathematics"],
-  ["mathematics", "Mathematics"],
-  ["mechanical", "Mechanical / Civil"],
-  ["civil", "Mechanical / Civil"],
-  ["thermodynamics", "Core Engineering"],
-  ["strength of materials", "Core Engineering"],
-  ["fluid mechanics", "Core Engineering"],
-  ["chemistry", "General"],
-  ["physics", "General"],
-  ["environmental", "General"],
-  ["management", "Management / Humanities"],
-  ["economics", "Management / Humanities"],
-  ["ethics", "Management / Humanities"],
-  ["accounting", "Management / Humanities"]
-]
+const domainClassifier = require("./domainClassifier")
+const ALLOWED_DOMAINS = new Set(domainClassifier.ALLOWED_DOMAINS)
 
 const normalizeOcrText = (raw) => {
   if (!raw || typeof raw !== "string") {
@@ -73,26 +20,9 @@ const normalizeOcrText = (raw) => {
   return text.trim()
 }
 
-const normalizeSubjectKey = (name) =>
-  String(name || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
+const normalizeSubjectKey = (name) => domainClassifier.normalizeSubjectName(name)
 
-const mapDomainFromSubjectName = (name) => {
-  const key = normalizeSubjectKey(name)
-  if (!key) {
-    return "General"
-  }
-
-  for (const [keyword, domain] of SUBJECT_KEYWORD_TO_DOMAIN) {
-    if (key.includes(keyword)) {
-      return domain
-    }
-  }
-
-  return "General"
-}
+const mapDomainFromSubjectName = (name) => domainClassifier.mapDomainFromSubjectName(name)
 
 const isLikelyRollOrId = (name) => {
   const t = String(name).trim()
