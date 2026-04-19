@@ -9,6 +9,7 @@ import {
   getSemesterOptions,
   getSubjectOptions,
   inferDomainForSubject,
+  isDomainOption,
   normalizeDomainLabel,
   toApiDomainLabel,
   type DomainOption
@@ -77,8 +78,8 @@ const mapFetchedSemester = (
   return {
     selectedSubject: suggestedSubject ? suggestedSubject.name : CUSTOM_SUBJECT_VALUE,
     customSubject: suggestedSubject ? "" : subjectName,
-    domain: DOMAIN_OPTIONS.includes((subject.domain || "") as DomainOption)
-      ? (subject.domain as DomainOption)
+    domain: isDomainOption(subject.domain || "")
+      ? subject.domain || "General"
       : normalizeDomainLabel(inferredDomain || subject.domain || "General"),
     marks: typeof subject.marks === "number" ? subject.marks.toString() : ""
   }

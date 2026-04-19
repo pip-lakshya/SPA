@@ -12,6 +12,9 @@ export const DOMAIN_OPTIONS = [
 
 export type DomainOption = string
 
+export const isDomainOption = (value: string): value is (typeof DOMAIN_OPTIONS)[number] =>
+  DOMAIN_OPTIONS.some((option) => option == value)
+
 const LEGACY_DOMAIN_ALIASES: Record<string, DomainOption> = {
   "Computer Science / IT": "Programming",
   "Core Engineering": "Core CS",

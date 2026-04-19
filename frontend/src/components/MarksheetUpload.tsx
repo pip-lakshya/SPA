@@ -3,6 +3,7 @@ import { FileUp, Loader2, Plus, Trash2, Wand2, X } from "lucide-react"
 import {
   DOMAIN_OPTIONS,
   getSemesterOptions,
+  isDomainOption,
   type DomainOption
 } from "../data/academicCatalog"
 import type { MarksheetOcrResponse } from "../types/academic"
@@ -35,7 +36,7 @@ let rowId = 0
 const nextRowId = () => `row-${++rowId}`
 
 const coerceDomain = (value: string): DomainOption =>
-  DOMAIN_OPTIONS.includes(value as DomainOption) ? (value as DomainOption) : "General"
+  isDomainOption(value) ? value : "General"
 
 const emptyDraftRow = (): DraftRow => ({
   id: nextRowId(),
