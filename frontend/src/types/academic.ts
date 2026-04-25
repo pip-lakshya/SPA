@@ -25,6 +25,7 @@ export type DomainAverages = {
 export type AcademicRecord = {
   userId?: string
   department?: string
+  course?: string
   branch?: string
   semesters?: ApiSemester[]
   cgpa?: number
@@ -73,9 +74,21 @@ export type LeaderboardEntry = {
   name: string
   email: string
   department: string
+  course: string
   branch: string
   cgpa: number
   overallAverage: number
+}
+
+export type LeaderboardResponse = {
+  data?: LeaderboardEntry[]
+  message?: string
+  meta?: {
+    scope?: string
+    branch?: string
+    department?: string
+    course?: string
+  }
 }
 
 export type PeerClusterStudent = {
@@ -83,6 +96,7 @@ export type PeerClusterStudent = {
   name: string
   email: string
   department: string
+  course: string
   branch: string
   cgpa: number
   overallAverage: number

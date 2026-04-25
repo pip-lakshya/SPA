@@ -552,7 +552,7 @@ export default function Dashboard({ setPage }: Props) {
             )}
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+          <section className="grid gap-6 xl:grid-cols-3">
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
@@ -573,7 +573,8 @@ export default function Dashboard({ setPage }: Props) {
                 </p>
               </div>
             </section>
-            <Leaderboard />
+            <Leaderboard title="Overall Leaderboard" scope="overall" />
+            <Leaderboard title="Branch Leaderboard" scope="branch" />
           </section>
 
           <section id="academic-input">

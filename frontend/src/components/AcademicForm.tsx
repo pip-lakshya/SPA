@@ -20,6 +20,9 @@ import { apiUrl } from "../lib/apiUrl"
 
 const DATA_BASE_PATH = "/api/data"
 const dataUrl = (path: string) => apiUrl(`${DATA_BASE_PATH}${path}`)
+const CUSTOM_OPTION_VALUE = "__custom_option__"
+const DEFAULT_SEMESTER_OPTIONS = Array.from({ length: 12 }, (_, index) => `Sem ${index + 1}`)
+const DEFAULT_COURSE_SUGGESTIONS = ["B.Tech", "B.E.", "M.Tech", "MBA", "BA LLB", "LLB"]
 
 type SubjectForm = {
   selectedSubject: string
@@ -49,10 +52,36 @@ const createEmptySemester = (department: string, selected?: string): SemesterFor
   const semesterOptions = getSemesterOptions(department)
 
   return {
-    semester: selected || semesterOptions[0] || "",
+    semester: selected || semesterOptions[0] || DEFAULT_SEMESTER_OPTIONS[0],
     sgpa: "",
     subjects: [createEmptySubject()]
   }
+}
+
+const getCourseSuggestions = (department: string) => {
+  if (!department.trim()) {
+    return DEFAULT_COURSE_SUGGESTIONS
+  }
+
+  if (department === "MBA / Management") {
+    return ["MBA", "PGDM", "BBA"]
+  }
+
+  return DEFAULT_COURSE_SUGGESTIONS
+}
+
+const getResolvedSemesterOptions = (department: string, semesters: SemesterForm[]) => {
+  const catalogOptions = getSemesterOptions(department)
+
+  if (catalogOptions.length) {
+    return catalogOptions
+  }
+
+  const customSemesters = semesters
+    .map((semester) => semester.semester.trim())
+    .filter(Boolean)
+
+  return Array.from(new Set([...DEFAULT_SEMESTER_OPTIONS, ...customSemesters]))
 }
 
 const getSubjectName = (subject: SubjectForm) =>
@@ -89,6 +118,8 @@ const mapFetchedData = (response: AcademicApiResponse) => {
   const department = response.data?.department || DEPARTMENT_OPTIONS[0]
   const branchOptions = getBranchOptions(department)
   const branch = response.data?.branch || branchOptions[0] || ""
+  const courseSuggestions = getCourseSuggestions(department)
+  const course = response.data?.course || courseSuggestions[0] || ""
 
   const semesters = response.data?.semesters?.length
     ? response.data.semesters.map((semester, semesterIndex) => ({
@@ -111,6 +142,7 @@ const mapFetchedData = (response: AcademicApiResponse) => {
 
   return {
     department,
+    course,
     branch,
     semesters,
     cgpa: response.data?.cgpa?.toString() || ""
@@ -119,6 +151,7 @@ const mapFetchedData = (response: AcademicApiResponse) => {
 
 const validateAcademicForm = (
   department: string,
+  course: string,
   branch: string,
   cgpa: string,
   semesters: SemesterForm[]
@@ -129,6 +162,10 @@ const validateAcademicForm = (
 
   if (!branch) {
     return "Branch is required"
+  }
+
+  if (!course.trim()) {
+    return "Course is required"
   }
 
   if (!cgpa.trim()) {
@@ -192,6 +229,7 @@ const validateAcademicForm = (
 
 export default function AcademicForm({ onDataChange }: Props) {
   const [department, setDepartment] = useState(DEPARTMENT_OPTIONS[0])
+  const [course, setCourse] = useState(getCourseSuggestions(DEPARTMENT_OPTIONS[0])[0] || "")
   const [branch, setBranch] = useState(getBranchOptions(DEPARTMENT_OPTIONS[0])[0] || "")
   const [semesters, setSemesters] = useState<SemesterForm[]>([
     createEmptySemester(DEPARTMENT_OPTIONS[0])
@@ -204,20 +242,25 @@ export default function AcademicForm({ onDataChange }: Props) {
   const [ocrTargetSemesterIndex, setOcrTargetSemesterIndex] = useState(0)
 
   const branchOptions = useMemo(() => getBranchOptions(department), [department])
-  const semesterOptions = useMemo(() => getSemesterOptions(department), [department])
+  const courseSuggestions = useMemo(() => getCourseSuggestions(department), [department])
+  const semesterOptions = useMemo(
+    () => getResolvedSemesterOptions(department, semesters),
+    [department, semesters]
+  )
+  const selectedDepartmentValue = DEPARTMENT_OPTIONS.includes(department)
+    ? department
+    : CUSTOM_OPTION_VALUE
+  const selectedCourseValue = courseSuggestions.includes(course)
+    ? course
+    : CUSTOM_OPTION_VALUE
+  const selectedBranchValue = branchOptions.includes(branch) ? branch : CUSTOM_OPTION_VALUE
 
   const validationError = useMemo(
-    () => validateAcademicForm(department, branch, cgpa, semesters),
-    [branch, cgpa, department, semesters]
+    () => validateAcademicForm(department, course, branch, cgpa, semesters),
+    [branch, cgpa, course, department, semesters]
   )
 
   const isSubmitDisabled = saving || loading || !!validationError
-
-  useEffect(() => {
-    if (!branchOptions.includes(branch)) {
-      setBranch(branchOptions[0] || "")
-    }
-  }, [branch, branchOptions])
 
   useEffect(() => {
     setOcrTargetSemesterIndex((current) =>
@@ -252,6 +295,7 @@ export default function AcademicForm({ onDataChange }: Props) {
         if (data.data) {
           const mapped = mapFetchedData(data)
           setDepartment(mapped.department)
+          setCourse(mapped.course)
           setBranch(mapped.branch)
           setSemesters(mapped.semesters)
           setCgpa(mapped.cgpa)
@@ -279,8 +323,10 @@ export default function AcademicForm({ onDataChange }: Props) {
   const handleDepartmentChange = (nextDepartment: string) => {
     const nextBranchOptions = getBranchOptions(nextDepartment)
     const nextSemesterOptions = getSemesterOptions(nextDepartment)
+    const nextCourseSuggestions = getCourseSuggestions(nextDepartment)
 
     setDepartment(nextDepartment)
+    setCourse(nextCourseSuggestions[0] || "")
     setBranch(nextBranchOptions[0] || "")
     setSemesters((currentSemesters) => {
       const uniqueSemesterOptions = [...nextSemesterOptions]
@@ -435,13 +481,16 @@ export default function AcademicForm({ onDataChange }: Props) {
     const used = new Set(semesters.map((semester) => semester.semester))
     const nextSemester = semesterOptions.find((option) => !used.has(option))
 
-    if (!nextSemester) {
+    if (!nextSemester && semesters.length >= DEFAULT_SEMESTER_OPTIONS.length) {
       return
     }
 
     setSemesters((currentSemesters) => [
       ...currentSemesters,
-      createEmptySemester(department, nextSemester)
+      createEmptySemester(
+        department,
+        nextSemester || `Term ${currentSemesters.length + 1}`
+      )
     ])
     setSuccessMessage("")
   }
@@ -504,6 +553,7 @@ export default function AcademicForm({ onDataChange }: Props) {
     try {
       const payload = {
         department,
+        course,
         branch,
         semesters: semesters.map((semester) => ({
           semester: semester.semester,
@@ -541,7 +591,8 @@ export default function AcademicForm({ onDataChange }: Props) {
     }
   }
 
-  const canAddSemester = semesters.length < semesterOptions.length
+  const canAddSemester =
+    semesters.length < Math.max(semesterOptions.length, DEFAULT_SEMESTER_OPTIONS.length)
 
   const applyOcrPayload = (
     semesterIndex: number,
@@ -595,11 +646,12 @@ export default function AcademicForm({ onDataChange }: Props) {
             Academic Input
           </p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">
-            Department-aware academic records
+            Flexible academic records
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Subjects come from the selected department syllabus, domains auto-map from
-            subject names, and you can still override the domain if needed.
+            Use the built-in college presets when they fit, or switch to custom
+            department, course, branch, semester, and subject entries for programs
+            like law or any other stream.
           </p>
         </div>
       </div>
@@ -610,12 +662,22 @@ export default function AcademicForm({ onDataChange }: Props) {
         </div>
       ) : (
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <label className="block text-sm font-medium text-slate-700">
               Department
               <select
-                value={department}
-                onChange={(event) => handleDepartmentChange(event.target.value)}
+                value={selectedDepartmentValue}
+                onChange={(event) => {
+                  if (event.target.value === CUSTOM_OPTION_VALUE) {
+                    setDepartment("")
+                    setBranch("")
+                    setSuccessMessage("")
+                    setError("")
+                    return
+                  }
+
+                  handleDepartmentChange(event.target.value)
+                }}
                 className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
               >
                 {DEPARTMENT_OPTIONS.map((option) => (
@@ -623,14 +685,65 @@ export default function AcademicForm({ onDataChange }: Props) {
                     {option}
                   </option>
                 ))}
+                <option value={CUSTOM_OPTION_VALUE}>Custom department</option>
               </select>
+              {selectedDepartmentValue === CUSTOM_OPTION_VALUE ? (
+                <input
+                  type="text"
+                  value={department}
+                  onChange={(event) => setDepartment(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                  placeholder="Faculty of Law"
+                />
+              ) : null}
+            </label>
+
+            <label className="block text-sm font-medium text-slate-700">
+              Course
+              <select
+                value={selectedCourseValue}
+                onChange={(event) => {
+                  if (event.target.value === CUSTOM_OPTION_VALUE) {
+                    setCourse("")
+                  } else {
+                    setCourse(event.target.value)
+                  }
+                  setSuccessMessage("")
+                  setError("")
+                }}
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+              >
+                {courseSuggestions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={CUSTOM_OPTION_VALUE}>Custom course</option>
+              </select>
+              {selectedCourseValue === CUSTOM_OPTION_VALUE ? (
+                <input
+                  type="text"
+                  value={course}
+                  onChange={(event) => setCourse(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                  placeholder="BA LLB"
+                />
+              ) : null}
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
               Branch
               <select
-                value={branch}
-                onChange={(event) => setBranch(event.target.value)}
+                value={selectedBranchValue}
+                onChange={(event) => {
+                  if (event.target.value === CUSTOM_OPTION_VALUE) {
+                    setBranch("")
+                  } else {
+                    setBranch(event.target.value)
+                  }
+                  setSuccessMessage("")
+                  setError("")
+                }}
                 className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
               >
                 {branchOptions.map((option) => (
@@ -638,7 +751,17 @@ export default function AcademicForm({ onDataChange }: Props) {
                     {option}
                   </option>
                 ))}
+                <option value={CUSTOM_OPTION_VALUE}>Custom branch</option>
               </select>
+              {selectedBranchValue === CUSTOM_OPTION_VALUE ? (
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(event) => setBranch(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                  placeholder="Corporate Law"
+                />
+              ) : null}
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
@@ -677,11 +800,20 @@ export default function AcademicForm({ onDataChange }: Props) {
                 <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-end">
                   <label className="block text-sm font-medium text-slate-700">
                     Semester
-                    <select
-                      value={semester.semester}
-                      onChange={(event) =>
-                        updateSemester(semesterIndex, "semester", event.target.value)
+                      <select
+                      value={
+                        semesterOptions.includes(semester.semester)
+                          ? semester.semester
+                          : CUSTOM_OPTION_VALUE
                       }
+                      onChange={(event) => {
+                        if (event.target.value === CUSTOM_OPTION_VALUE) {
+                          updateSemester(semesterIndex, "semester", "")
+                          return
+                        }
+
+                        updateSemester(semesterIndex, "semester", event.target.value)
+                      }}
                       className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
                     >
                       {semesterChoices.map((option) => (
@@ -689,7 +821,19 @@ export default function AcademicForm({ onDataChange }: Props) {
                           {option}
                         </option>
                       ))}
+                      <option value={CUSTOM_OPTION_VALUE}>Custom semester</option>
                     </select>
+                    {!semesterOptions.includes(semester.semester) ? (
+                      <input
+                        type="text"
+                        value={semester.semester}
+                        onChange={(event) =>
+                          updateSemester(semesterIndex, "semester", event.target.value)
+                        }
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                        placeholder="Year 1 Semester 1"
+                      />
+                    ) : null}
                   </label>
 
                   <label className="block text-sm font-medium text-slate-700">

@@ -98,6 +98,11 @@ const academicDataSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    course: {
+      type: String,
+      required: true,
+      trim: true
+    },
     branch: {
       type: String,
       required: true,

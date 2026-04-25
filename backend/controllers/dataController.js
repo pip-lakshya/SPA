@@ -89,6 +89,7 @@ const getDerivedAcademicFields = (record) => {
 
   return {
     department: record?.department || "Department not set",
+    course: record?.course || "Course not set",
     branch: record?.branch || "Branch not set",
     cgpa: Number.isFinite(record?.cgpa) ? roundToTwo(record.cgpa) : 0,
     overallAverage: Number.isFinite(record?.overallAverage)
@@ -160,9 +161,13 @@ const calculateAnalytics = (semesters) => {
   }
 }
 
-const validatePayload = ({ department, branch, cgpa, semesters }) => {
-  if (!ALLOWED_DEPARTMENTS.includes(department)) {
-    return "Please select a valid department"
+const validatePayload = ({ department, course, branch, cgpa, semesters }) => {
+  if (!department || !department.trim()) {
+    return "Department is required"
+  }
+
+  if (!course || !course.trim()) {
+    return "Course is required"
   }
 
   if (!branch || !branch.trim()) {
@@ -219,6 +224,7 @@ const saveAcademicData = async (req, res) => {
     }
 
     const department = String(req.body?.department || "").trim()
+    const course = String(req.body?.course || "").trim()
     const branch = String(req.body?.branch || "").trim()
     const semesters = Array.isArray(req.body?.semesters)
       ? req.body.semesters.map(normalizeSemester)
@@ -227,6 +233,7 @@ const saveAcademicData = async (req, res) => {
 
     const validationError = validatePayload({
       department,
+      course,
       branch,
       cgpa,
       semesters
@@ -259,6 +266,7 @@ const saveAcademicData = async (req, res) => {
       {
         $set: {
           department,
+          course,
           branch,
           semesters,
           cgpa,
@@ -311,6 +319,7 @@ const getMyAcademicData = async (req, res) => {
       data: {
         ...academicData,
         department: derived.department,
+        course: derived.course,
         branch: derived.branch,
         overallAverage: derived.overallAverage,
         domainAverages: derived.domainAverages
@@ -322,8 +331,40 @@ const getMyAcademicData = async (req, res) => {
   }
 }
 
-const getLeaderboard = async (_req, res) => {
+const getLeaderboard = async (req, res) => {
   try {
+    const scope = String(req.query?.scope || "overall").trim().toLowerCase()
+    const userId = req.user?.id
+
+    let scopedBranch = ""
+    let scopedDepartment = ""
+    let scopedCourse = ""
+
+    if (scope === "branch") {
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" })
+      }
+
+      const currentRecord = await AcademicData.findOne({ userId }).lean()
+
+      if (!currentRecord) {
+        return res.json({
+          data: [],
+          meta: {
+            scope: "branch",
+            branch: "",
+            department: "",
+            course: ""
+          }
+        })
+      }
+
+      const currentDerived = getDerivedAcademicFields(currentRecord)
+      scopedBranch = currentDerived.branch
+      scopedDepartment = currentDerived.department
+      scopedCourse = currentDerived.course
+    }
+
     const leaderboard = await AcademicData.find({})
       .populate("userId", "email name")
       .lean()
@@ -337,11 +378,23 @@ const getLeaderboard = async (_req, res) => {
           name: toDisplayName(entry.userId),
           email: entry.userId?.email || "Unknown User",
           department: derived.department,
+          course: derived.course,
           branch: derived.branch,
           cgpa: derived.cgpa,
           overallAverage: derived.overallAverage,
           updatedAt: entry.updatedAt ? new Date(entry.updatedAt).getTime() : 0
         }
+      })
+      .filter((entry) => {
+        if (scope !== "branch") {
+          return true
+        }
+
+        return (
+          entry.branch === scopedBranch &&
+          entry.department === scopedDepartment &&
+          entry.course === scopedCourse
+        )
       })
       .sort((first, second) => {
         if (second.overallAverage !== first.overallAverage) {
@@ -361,12 +414,21 @@ const getLeaderboard = async (_req, res) => {
         name: entry.name,
         email: entry.email,
         department: entry.department,
+        course: entry.course,
         branch: entry.branch,
         cgpa: entry.cgpa,
         overallAverage: entry.overallAverage
       }))
 
-    return res.json({ data: result })
+    return res.json({
+      data: result,
+      meta: {
+        scope,
+        branch: scope === "branch" ? scopedBranch : "",
+        department: scope === "branch" ? scopedDepartment : "",
+        course: scope === "branch" ? scopedCourse : ""
+      }
+    })
   } catch (err) {
     return res.status(500).json({ message: "Failed to fetch leaderboard" })
   }
@@ -410,6 +472,7 @@ const getPeerCluster = async (req, res) => {
           name: toDisplayName(entry.userId),
           email: entry.userId?.email || "Unknown User",
           department: derived.department,
+          course: derived.course,
           branch: derived.branch,
           cgpa: derived.cgpa,
           overallAverage: derived.overallAverage,
@@ -433,6 +496,7 @@ const getPeerCluster = async (req, res) => {
           name: toDisplayName(currentRecord.userId),
           email: currentRecord.userId?.email || "Unknown User",
           department: currentDerived.department,
+          course: currentDerived.course,
           branch: currentDerived.branch,
           cgpa: currentDerived.cgpa,
           overallAverage: currentAverage
