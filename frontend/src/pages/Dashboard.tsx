@@ -111,6 +111,7 @@ export default function Dashboard({ setPage }: Props) {
   const [similarStudents, setSimilarStudents] = useState<PeerClusterStudent[]>([])
   const [clusterLoading, setClusterLoading] = useState(true)
   const [clusterError, setClusterError] = useState("")
+  const [selectedHeatmapIndex, setSelectedHeatmapIndex] = useState(0)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -200,6 +201,10 @@ export default function Dashboard({ setPage }: Props) {
     [academicData?.semesters]
   )
 
+  useEffect(() => {
+    setSelectedHeatmapIndex(0)
+  }, [allSubjects.length])
+
   const semesterTrend = useMemo(
     () =>
       semesterAverages.length > 1
@@ -230,6 +235,8 @@ export default function Dashboard({ setPage }: Props) {
       ),
     [currentAverage, currentCgpa, weakestDomain]
   )
+
+  const selectedHeatmapSubject = allSubjects[selectedHeatmapIndex] || allSubjects[0]
 
   return (
     <div className="bg-slate-100">
@@ -527,23 +534,77 @@ export default function Dashboard({ setPage }: Props) {
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-900">Subject Strength Heatmap</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Quick visual view of how each subject is performing across semesters.
+              Compact subject blocks give you the full overview at once. Hover on desktop
+              or tap on mobile to inspect the selected subject in detail.
             </p>
             {allSubjects.length ? (
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {allSubjects.map((subject, index) => (
+              <div className="mt-6 space-y-5">
+                {selectedHeatmapSubject ? (
                   <div
-                    key={`${subject.semester}-${subject.name}-${index}`}
-                    className={`rounded-2xl border border-white/60 p-4 ${getStrengthColor(subject.marks)}`}
+                    className={`rounded-3xl border p-5 shadow-sm ${getStrengthColor(
+                      selectedHeatmapSubject.marks
+                    )}`}
                   >
-                    <p className="text-xs uppercase tracking-[0.15em] opacity-80">
-                      {subject.semester}
-                    </p>
-                    <p className="mt-2 font-semibold">{subject.name}</p>
-                    <p className="mt-1 text-sm">{subject.domain}</p>
-                    <p className="mt-3 text-lg font-bold">{subject.marks}</p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] opacity-80">
+                          {selectedHeatmapSubject.semester}
+                        </p>
+                        <p className="mt-2 text-lg font-bold sm:text-xl">
+                          {selectedHeatmapSubject.name}
+                        </p>
+                        <p className="mt-1 text-sm opacity-90">
+                          {selectedHeatmapSubject.domain}
+                        </p>
+                      </div>
+                      <div className="inline-flex w-fit rounded-2xl bg-white/70 px-4 py-3 text-right">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.15em] opacity-70">
+                            Marks
+                          </p>
+                          <p className="mt-1 text-2xl font-bold">
+                            {selectedHeatmapSubject.marks}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                ) : null}
+
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
+                  {allSubjects.map((subject, index) => {
+                    const isSelected = index === selectedHeatmapIndex
+
+                    return (
+                      <button
+                        key={`${subject.semester}-${subject.name}-${index}`}
+                        type="button"
+                        title={`${subject.name} • ${subject.semester} • ${subject.domain} • ${subject.marks}`}
+                        onClick={() => setSelectedHeatmapIndex(index)}
+                        onMouseEnter={() => setSelectedHeatmapIndex(index)}
+                        className={`group relative aspect-square overflow-hidden rounded-2xl border p-2 text-left transition duration-200 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-slate-900/20 ${
+                          isSelected
+                            ? "border-slate-900 ring-2 ring-slate-900/15"
+                            : "border-white/60"
+                        } ${getStrengthColor(subject.marks)}`}
+                      >
+                        <div className="flex h-full flex-col justify-between">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-75">
+                            {subject.semester.replace("Semester", "Sem")}
+                          </p>
+                          <div>
+                            <p className="line-clamp-2 text-xs font-semibold leading-4 sm:text-sm">
+                              {subject.name}
+                            </p>
+                            <p className="mt-1 text-lg font-bold leading-none">
+                              {subject.marks}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             ) : (
               <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
