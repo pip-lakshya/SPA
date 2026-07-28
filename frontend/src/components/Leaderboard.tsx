@@ -1,150 +1,29 @@
 import { useEffect, useMemo, useState } from "react"
-import { Trophy } from "lucide-react"
+import { Download, RotateCcw, Search, Trophy } from "lucide-react"
 import type { LeaderboardEntry, LeaderboardResponse } from "../types/academic"
 import { apiUrl } from "../lib/apiUrl"
 
-type Props = {
-  title?: string
-  scope?: "overall" | "branch"
-}
+type Entry = LeaderboardEntry & { domainAverages?: Record<string, number>; semesters?: string[]; createdAt?: number }
+type Props = { title?: string; scope?: "overall" | "branch" }
+const domains = ["Programming", "Mathematics", "Core CS", "Science", "Electronics", "Mechanical", "Soft Skills", "General"]
+const number = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : 0
+const group = (entry: Entry) => entry.overallAverage >= 85 && entry.cgpa >= 8.5 ? "High Achiever" : entry.overallAverage >= 70 && entry.cgpa >= 7 ? "Consistent Performer" : entry.overallAverage >= 55 && entry.cgpa >= 6 ? "Balanced Performer" : "Needs Improvement"
+const risk = (entry: Entry) => entry.overallAverage >= 75 && entry.cgpa >= 7.5 ? "Low Risk" : entry.overallAverage >= 55 && entry.cgpa >= 6 ? "Medium Risk" : "High Risk"
+const strongest = (entry: Entry) => Object.entries(entry.domainAverages || {}).sort((a, b) => number(b[1]) - number(a[1]))[0]?.[0] || "General"
+const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`
 
-const toSafeNumber = (value: unknown) =>
-  typeof value === "number" && Number.isFinite(value) ? value : 0
-
-export default function Leaderboard({
-  title,
-  scope = "overall"
-}: Props) {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [meta, setMeta] = useState<LeaderboardResponse["meta"]>({})
-
-  const currentUserEmail = (() => {
-    try {
-      const user = localStorage.getItem("user")
-      return user ? JSON.parse(user).email : ""
-    } catch {
-      return ""
-    }
-  })()
-
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const token = localStorage.getItem("token")
-
-      if (!token) {
-        setError("Please log in to view the leaderboard")
-        setLoading(false)
-        return
-      }
-
-      try {
-        setError("")
-        const res = await fetch(apiUrl(`/api/data/leaderboard?scope=${scope}`), {
-          headers: {
-            Authorization: token
-          }
-        })
-        const data: LeaderboardResponse = await res.json()
-
-        if (!res.ok) {
-          throw new Error(data.message || "Failed to load leaderboard")
-        }
-
-        setLeaderboard(Array.isArray(data.data) ? data.data : [])
-        setMeta(data.meta || {})
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load leaderboard")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchLeaderboard()
-  }, [scope])
-
-  const heading = useMemo(() => {
-    if (title) {
-      return title
-    }
-
-    return scope === "branch" ? "Branch Leaderboard" : "Overall Leaderboard"
-  }, [scope, title])
-
-  const description =
-    scope === "branch"
-      ? meta?.branch
-        ? `${meta.branch} students in ${meta.course || "their course"}, ranked by overall average first and CGPA second.`
-        : "Students from your branch are ranked by overall average first and CGPA second."
-      : "Ranked by overall average first and CGPA second."
-
-  return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
-          <Trophy className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">{heading}</h2>
-          <p className="text-sm text-slate-500">{description}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-3">
-        {loading ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            Loading leaderboard...
-          </div>
-        ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        ) : leaderboard.length ? (
-          leaderboard.map((entry) => {
-            const isCurrentUser = currentUserEmail && currentUserEmail === entry.email
-            const cgpa = toSafeNumber(entry.cgpa)
-            const overallAverage = toSafeNumber(entry.overallAverage)
-
-            return (
-              <div
-                key={`${entry.userId}-${entry.rank}-${scope}`}
-                className={`rounded-2xl border px-4 py-4 ${
-                  isCurrentUser
-                    ? "border-indigo-200 bg-indigo-50"
-                    : "border-slate-200 bg-slate-50"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      #{entry.rank} {entry.name}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">{entry.email}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.15em] text-slate-500">
-                      {entry.department || "Department not set"} • {entry.course || "Course not set"} • {entry.branch || "Branch not set"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white">
-                      Avg {overallAverage.toFixed(2)}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      CGPA {cgpa.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )
-          })
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            {scope === "branch"
-              ? "No branch-specific leaderboard data yet. Save academic records for students in the same branch to populate rankings."
-              : "No leaderboard data yet. Save academic records to populate rankings."}
-          </div>
-        )}
-      </div>
-    </section>
-  )
+export default function Leaderboard({ title, scope = "overall" }: Props) {
+  const [entries, setEntries] = useState<Entry[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState("")
+  const [tab, setTab] = useState("Overall"), [search, setSearch] = useState(""), [course, setCourse] = useState(""), [department, setDepartment] = useState(""), [branch, setBranch] = useState(""), [semester, setSemester] = useState(""), [domain, setDomain] = useState(""), [riskFilter, setRiskFilter] = useState(""), [academicGroup, setAcademicGroup] = useState(""), [sort, setSort] = useState("average"), [page, setPage] = useState(1)
+  useEffect(() => { const load = async () => { const token = localStorage.getItem("token"); if (!token) { setError("Please log in to view the leaderboard"); setLoading(false); return } try { const response = await fetch(apiUrl(`/api/data/leaderboard?scope=${scope}`), { headers: { Authorization: token } }); const data: LeaderboardResponse = await response.json(); if (!response.ok) throw new Error(data.message || "Failed to load leaderboard"); setEntries((data.data || []) as Entry[]) } catch (err) { setError(err instanceof Error ? err.message : "Failed to load leaderboard") } finally { setLoading(false) } }; load() }, [scope])
+  const options = (key: keyof Entry) => [...new Set(entries.map((entry) => String(entry[key] || "")).filter(Boolean))]
+  const filtered = useMemo(() => entries.filter((entry) => { const haystack = `${entry.name} ${entry.email} ${(entry as Entry & { enrollmentNumber?: string; rollNumber?: string }).enrollmentNumber || ""} ${(entry as Entry & { rollNumber?: string }).rollNumber || ""}`.toLowerCase(); return (!search || haystack.includes(search.toLowerCase())) && (!course || entry.course === course) && (!department || entry.department === department) && (!branch || entry.branch === branch) && (!semester || entry.semesters?.includes(semester)) && (!domain || strongest(entry) === domain) && (!riskFilter || risk(entry) === riskFilter) && (!academicGroup || group(entry) === academicGroup) }), [entries, search, course, department, branch, semester, domain, riskFilter, academicGroup])
+  const sorted = useMemo(() => [...filtered].sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : sort === "cgpa" ? b.cgpa - a.cgpa : sort === "recent" ? number(b.createdAt) - number(a.createdAt) : sort.startsWith("domain:") ? number(b.domainAverages?.[sort.slice(7)]) - number(a.domainAverages?.[sort.slice(7)]) : b.overallAverage - a.overallAverage), [filtered, sort])
+  const pages = Math.max(1, Math.ceil(sorted.length / 20)), shown = sorted.slice((page - 1) * 20, page * 20)
+  useEffect(() => setPage(1), [search, course, department, branch, semester, domain, riskFilter, academicGroup, sort])
+  const stats = useMemo(() => ({ total: sorted.length, highest: Math.max(0, ...sorted.map((entry) => entry.overallAverage)), cgpa: Math.max(0, ...sorted.map((entry) => entry.cgpa)), averageCgpa: sorted.length ? sorted.reduce((sum, entry) => sum + entry.cgpa, 0) / sorted.length : 0, average: sorted.length ? sorted.reduce((sum, entry) => sum + entry.overallAverage, 0) / sorted.length : 0, department: options("department").sort((a, b) => sorted.filter((entry) => entry.department === b).length - sorted.filter((entry) => entry.department === a).length)[0] || "--" }), [sorted])
+  const reset = () => { setSearch(""); setCourse(""); setDepartment(""); setBranch(""); setSemester(""); setDomain(""); setRiskFilter(""); setAcademicGroup(""); setSort("average") }
+  const exportRows = (excel = false) => { const delimiter = excel ? "\t" : ",", body = [["Rank", "Student", "Email", "Department", "Course", "Branch", "CGPA", "Overall Average"], ...sorted.map((entry, index) => [index + 1, entry.name, entry.email, entry.department, entry.course, entry.branch, entry.cgpa.toFixed(2), entry.overallAverage.toFixed(2)])].map((row) => row.map(escape).join(delimiter)).join("\n"); const url = URL.createObjectURL(new Blob([body], { type: "text/csv" })); const link = document.createElement("a"); link.href = url; link.download = `leaderboard.${excel ? "xls" : "csv"}`; link.click(); URL.revokeObjectURL(url) }
+  const select = (value: string, setter: (value: string) => void, choices: string[], label: string) => <label className="min-w-32 flex-1 text-xs font-medium text-slate-600">{label}<select value={value} onChange={(e) => setter(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm text-slate-800"><option value="">All</option>{choices.map((choice) => <option key={choice}>{choice}</option>)}</select></label>
+  return <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><div className="rounded-2xl bg-amber-50 p-3 text-amber-600"><Trophy className="h-5 w-5" /></div><div><h2 className="text-xl font-bold text-slate-900">{title || "Leaderboard"}</h2><p className="text-sm text-slate-500">Ranked by overall average first and CGPA second.</p></div></div><div className="flex gap-2"><button type="button" onClick={() => exportRows()} className="text-xs font-semibold text-indigo-700"><Download className="inline h-4 w-4" /> CSV</button><button type="button" onClick={() => exportRows(true)} className="text-xs font-semibold text-indigo-700">Excel</button></div></div><div className="mt-5 flex flex-wrap gap-2 border-b border-slate-100 pb-3">{["Overall", "College", "Department", "Branch", "Semester", "Domain"].map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${tab === item ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>{item}</button>)}</div><div className="mt-4 flex flex-wrap gap-3"><label className="min-w-48 flex-[2] text-xs font-medium text-slate-600">Search Student<div className="relative mt-1"><Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or email" className="w-full rounded-xl border border-slate-200 py-2 pl-8 pr-2 text-sm" /></div></label>{select(course, setCourse, options("course"), "Course")}{select(department, setDepartment, options("department"), "Department")}{select(branch, setBranch, options("branch"), "Branch")}{select(semester, setSemester, ["Sem 1", "Sem 2", "Sem 3", "Sem 4", "Sem 5", "Sem 6", "Sem 7", "Sem 8"], "Semester")}{select(domain, setDomain, domains, "Strongest Domain")}{select(riskFilter, setRiskFilter, ["Low Risk", "Medium Risk", "High Risk"], "Risk")}{select(academicGroup, setAcademicGroup, ["High Achiever", "Consistent Performer", "Balanced Performer", "Needs Improvement"], "Academic Group")}<label className="min-w-40 flex-1 text-xs font-medium text-slate-600">Sort By<select value={sort} onChange={(e) => setSort(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm"><option value="average">Overall Average</option><option value="cgpa">CGPA</option>{domains.map((item) => <option key={item} value={`domain:${item}`}>{item} Average</option>)}<option value="name">Student Name (A-Z)</option><option value="recent">Recently Joined</option></select></label><button type="button" onClick={reset} className="self-end rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"><RotateCcw className="inline h-3.5 w-3.5" /> Reset</button></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">{[["Total Students", stats.total], ["Highest Average", stats.highest.toFixed(2)], ["Highest CGPA", stats.cgpa.toFixed(2)], ["Average CGPA", stats.averageCgpa.toFixed(2)], ["Average Marks", stats.average.toFixed(2)], ["Top Department", stats.department]].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-slate-50 p-3"><p className="text-[10px] uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-sm font-bold text-slate-900">{value}</p></div>)}</div><div className="mt-5 space-y-3">{loading ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Loading leaderboard...</p> : error ? <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p> : shown.length ? shown.map((entry, index) => <div key={entry.userId} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="flex justify-between gap-3"><div><p className="text-sm font-semibold text-slate-900">#{(page - 1) * 20 + index + 1} {entry.name}</p><p className="mt-1 text-xs text-slate-500">{entry.email}</p><p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{entry.department} • {entry.course} • {entry.branch}</p></div><div className="text-right"><p className="rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white">Avg {number(entry.overallAverage).toFixed(2)}</p><p className="mt-2 text-xs text-slate-500">CGPA {number(entry.cgpa).toFixed(2)} · {group(entry)}</p></div></div></div>) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">No students match the selected filters.<button type="button" onClick={reset} className="ml-2 font-semibold text-indigo-700">Clear Filters</button></div>}</div>{pages > 1 && <div className="mt-5 flex items-center justify-center gap-3 text-sm"><button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page} of {pages}</span><button type="button" disabled={page === pages} onClick={() => setPage(page + 1)}>Next</button></div>}</section>
 }

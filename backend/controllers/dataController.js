@@ -382,6 +382,9 @@ const getLeaderboard = async (req, res) => {
           branch: derived.branch,
           cgpa: derived.cgpa,
           overallAverage: derived.overallAverage,
+          domainAverages: derived.domainAverages,
+          semesters: derived.analytics.semesterAverages.map((item) => item.semester),
+          createdAt: entry.createdAt ? new Date(entry.createdAt).getTime() : 0,
           updatedAt: entry.updatedAt ? new Date(entry.updatedAt).getTime() : 0
         }
       })
@@ -407,7 +410,6 @@ const getLeaderboard = async (req, res) => {
 
         return first.updatedAt - second.updatedAt
       })
-      .slice(0, 10)
       .map((entry, index) => ({
         rank: index + 1,
         userId: entry.userId,
@@ -417,7 +419,10 @@ const getLeaderboard = async (req, res) => {
         course: entry.course,
         branch: entry.branch,
         cgpa: entry.cgpa,
-        overallAverage: entry.overallAverage
+        overallAverage: entry.overallAverage,
+        domainAverages: entry.domainAverages,
+        semesters: entry.semesters,
+        createdAt: entry.createdAt
       }))
 
     return res.json({

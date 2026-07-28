@@ -15,7 +15,7 @@ import {
   type DomainOption
 } from "../data/academicCatalog"
 import type { AcademicApiResponse, AcademicSnapshot } from "../types/academic"
-import MarksheetUpload from "./MarksheetUpload"
+import ImportRecords from "./ImportRecords"
 import { apiUrl } from "../lib/apiUrl"
 
 const DATA_BASE_PATH = "/api/data"
@@ -638,6 +638,25 @@ export default function AcademicForm({ onDataChange }: Props) {
     setError("")
   }
 
+  const applyImportedRecord = (
+    payload: { semester?: string; sgpa?: number | null; subjects: Array<{ name: string; domain?: string; marks: number }> },
+    source: string
+  ) => {
+    const targetIndex = payload.semester
+      ? Math.max(0, semesters.findIndex((item) => item.semester === payload.semester))
+      : ocrTargetSemesterIndex
+    applyOcrPayload(targetIndex, {
+      semester: payload.semester || semesters[targetIndex]?.semester || "Sem 1",
+      sgpa: payload.sgpa ?? null,
+      subjects: payload.subjects.map((subject) => ({ ...subject, domain: subject.domain || "General" }))
+    })
+    if (!cgpa && payload.sgpa !== null && payload.sgpa !== undefined) {
+      setCgpa(String(payload.sgpa))
+    }
+    setSuccessMessage(`${source} records imported. Saving academic data automatically...`)
+    window.setTimeout(() => document.getElementById("academic-save")?.click(), 50)
+  }
+
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div className="mb-6">
@@ -779,16 +798,12 @@ export default function AcademicForm({ onDataChange }: Props) {
             </label>
           </div>
 
-          <MarksheetUpload
-            department={department}
-            semesterBlockCount={semesters.length}
-            targetSemesterIndex={ocrTargetSemesterIndex}
-            onTargetSemesterIndexChange={setOcrTargetSemesterIndex}
-            blockLabels={semesters.map((s) => s.semester)}
-            onApply={(payload) => applyOcrPayload(ocrTargetSemesterIndex, payload)}
-            disabled={loading}
+          <ImportRecords
+            onImport={applyImportedRecord}
+            onManualEntry={() => document.getElementById("semester-blocks")?.scrollIntoView({ behavior: "smooth", block: "start" })}
           />
 
+          <div id="semester-blocks" className="space-y-6">
           {semesters.map((semester, semesterIndex) => {
             const semesterChoices = getAvailableSemesterChoices(semesterIndex)
 
@@ -995,6 +1010,7 @@ export default function AcademicForm({ onDataChange }: Props) {
               </div>
             )
           })}
+          </div>
 
           {validationError ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -1028,6 +1044,7 @@ export default function AcademicForm({ onDataChange }: Props) {
               Add Semester
             </button>
             <button
+              id="academic-save"
               type="submit"
               disabled={isSubmitDisabled}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
