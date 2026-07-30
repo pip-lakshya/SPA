@@ -9,32 +9,24 @@ const GPT_PROMPT = `Convert this academic marksheet into plain text.
 
 Return ONLY plain text.
 
-No markdown.
+No markdown code blocks.
 
 No explanations.
 
-Use exactly this format.
+Use exactly this format:
 
-Semester: <semester>
+Semester: <semester e.g. 3>
 
-SGPA: <sgpa if available>
+SGPA: <sgpa e.g. 8.5 if available>
 
-Subject | Marks
-
-Subject | Marks
-
-Subject | Marks
+Subject Name | Marks
 
 Rules:
-
-- Ignore logos
-- Ignore student details unless available
-- Ignore roll number
-- Ignore remarks
-- Ignore pass/fail
-- Ignore course codes
-- Extract ONLY subject names and total marks.
-- Preserve full subject names.
+- Ignore logos, student details, roll numbers, remarks, pass/fail, course codes
+- Extract ONLY subject names and numerical marks (0-100)
+- Format each line as: Subject Name | Marks
+- Omit subjects that have no marks or are audit/ungraded
+- Preserve full subject names cleanly without trailing pipes
 - Output only plain text.`
 
 export default function ImportRecords({ onImport, onManualEntry }: Props) {
