@@ -14,7 +14,9 @@ const signToken = (userId) =>
 const formatUser = (user) => ({
   _id: user._id,
   name: user.name || "",
-  email: user.email
+  email: user.email,
+  profileImage: user.profileImage || "",
+  themePreference: user.themePreference || "system"
 })
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase()

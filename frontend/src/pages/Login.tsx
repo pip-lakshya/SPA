@@ -2,6 +2,7 @@ import { useState, type Dispatch, type SetStateAction } from "react"
 import type { Page } from "../app/App"
 import { API_BASE_URL } from "../config/env"
 import GoogleSignInButton from "../components/GoogleSignInButton"
+import { applyTheme, type ThemePreference } from "../lib/theme"
 
 type Props = {
   setPage: Dispatch<SetStateAction<Page>>
@@ -32,6 +33,12 @@ export default function Login({ setPage }: Props) {
       if (data.message === "Login successful") {
         localStorage.setItem("token", data.token)
         localStorage.setItem("user", JSON.stringify(data.user))
+        const themePref = data.user?.themePreference as ThemePreference | undefined
+        if (themePref) {
+          applyTheme(themePref)
+          localStorage.setItem("theme", themePref)
+        }
+        window.dispatchEvent(new Event("profile-updated"))
         setPage("dashboard")
       } else {
         alert(data.message)

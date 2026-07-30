@@ -43,15 +43,15 @@ const features = [
 
 export default function KeyFeatures() {
   return (
-    <section id="features" className="py-24 bg-white">
+    <section id="features" className="py-24 bg-white dark:bg-slate-950">
       <div className="max-w-7xl mx-auto px-6">
 
         {/* Section Heading */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-slate-100 mb-4">
             Everything You Need to Excel
           </h2>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-slate-400 text-lg">
             A complete toolkit designed to improve academic performance.
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function KeyFeatures() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="p-8 bg-white rounded-2xl shadow-sm border border-gray-100 
+              className="p-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 
                          hover:shadow-xl hover:-translate-y-2 
                          transition-all duration-300 cursor-pointer"
             >
@@ -74,11 +74,11 @@ export default function KeyFeatures() {
                 {feature.icon}
               </div>
 
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-3">
                 {feature.title}
               </h3>
 
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-600 dark:text-slate-400 leading-relaxed">
                 {feature.desc}
               </p>
             </motion.div>

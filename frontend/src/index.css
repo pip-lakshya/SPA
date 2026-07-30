@@ -5,6 +5,87 @@
 html {
   scroll-behavior: smooth;
 }
+
 section {
   scroll-margin-top: 100px;
+}
+
+@layer base {
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: #1e293b;
+  }
+
+  .dark .bg-white\/90,
+  .dark .bg-white\/95 {
+    background-color: rgba(30, 41, 59, 0.95);
+  }
+
+  .dark .bg-slate-50,
+  .dark .bg-slate-100 {
+    background-color: #0f172a;
+  }
+
+  .dark .bg-slate-50\/45 {
+    background-color: rgba(30, 41, 59, 0.45);
+  }
+
+  .dark .border-slate-100,
+  .dark .border-slate-200,
+  .dark .border-gray-200 {
+    border-color: #334155;
+  }
+
+  .dark .text-slate-900,
+  .dark .text-gray-900 {
+    color: #f8fafc;
+  }
+
+  .dark .text-slate-700,
+  .dark .text-gray-700 {
+    color: #cbd5e1;
+  }
+
+  .dark .text-slate-600,
+  .dark .text-gray-600,
+  .dark .text-gray-500,
+  .dark .text-slate-500 {
+    color: #94a3b8;
+  }
+
+  .dark .hover\:bg-slate-50:hover {
+    background-color: #334155;
+  }
+
+  .dark input,
+  .dark textarea,
+  .dark select {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border-color: #475569;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b;
+  }
+
+  .dark .recharts-cartesian-axis-tick-value {
+    fill: #94a3b8;
+  }
+
+  .dark .recharts-default-tooltip {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
 }

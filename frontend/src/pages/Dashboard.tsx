@@ -14,7 +14,6 @@ import {
 import {
   Activity,
   AlertTriangle,
-  BrainCircuit,
   ChartColumn,
   Gauge,
   Layers3,
@@ -427,13 +426,13 @@ export default function Dashboard({ setPage }: Props) {
                   <Layers3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Performance Clustering</h2>
-                  <p className="text-sm text-slate-500">Rule-based grouping for future ML clustering</p>
+                  <h2 className="text-xl font-bold text-slate-900">Academic Group</h2>
+                  <p className="text-sm text-slate-500">Rule-based academic grouping</p>
                 </div>
               </div>
 
               <div className={`mt-6 rounded-3xl border p-5 ${performanceCluster.tone}`}>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em]">Current Cluster</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em]">Current Group</p>
                 <p className="mt-2 text-2xl font-bold">{performanceCluster.label}</p>
                 <p className="mt-3 text-sm leading-6">{performanceCluster.description}</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -501,7 +500,7 @@ export default function Dashboard({ setPage }: Props) {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Risk Classification</h2>
-                  <p className="text-sm text-slate-500">Rule-based risk signal before ML scoring</p>
+                  <p className="text-sm text-slate-500">Rule-based academic risk signal</p>
                 </div>
               </div>
 
@@ -613,27 +612,7 @@ export default function Dashboard({ setPage }: Props) {
             )}
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-3">
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-                  <BrainCircuit className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">ML Insights</h2>
-                  <p className="text-sm text-slate-500">Future-model ready placeholder</p>
-                </div>
-              </div>
-              <div className="mt-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-6 text-center">
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">
-                  AI Insights Coming Soon
-                </p>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  The saved structure is now ready for trend prediction, weak-domain detection,
-                  and subject recommendation models in a future iteration.
-                </p>
-              </div>
-            </section>
+          <section className="grid gap-6 lg:grid-cols-2">
             <Leaderboard title="Overall Leaderboard" scope="overall" />
             <Leaderboard title="Branch Leaderboard" scope="branch" />
           </section>

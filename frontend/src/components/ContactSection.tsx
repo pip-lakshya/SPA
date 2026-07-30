@@ -2,10 +2,15 @@ import { useState } from "react"
 import { motion } from "motion/react"
 import { Mail, User, MessageSquare } from "lucide-react"
 
-export default function ContactSection() {
+type Props = {
+  supportMode?: boolean
+}
+
+export default function ContactSection({ supportMode = false }: Props) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
+  const [inquiryType, setInquiryType] = useState(supportMode ? "Support Request" : "General Inquiry")
+  const [message, setMessage] = useState(supportMode ? "I need help with my account or the platform." : "")
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
@@ -28,6 +33,7 @@ export default function ContactSection() {
         body: JSON.stringify({
           name,
           email,
+          inquiryType,
           message
         })
       }
@@ -42,12 +48,13 @@ export default function ContactSection() {
 
   setName("")
   setEmail("")
+  setInquiryType("General Inquiry")
   setMessage("")
 }
   return (
     <section
       id="contact"
-      className="py-28 bg-gradient-to-br from-slate-100 via-white to-indigo-100/40"
+      className="py-28 bg-gradient-to-br from-slate-100 via-white to-indigo-100/40 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40"
     >
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -56,7 +63,7 @@ export default function ContactSection() {
         viewport={{ once: true }}
         className="max-w-2xl mx-auto px-6"
       >
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
+        <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-slate-100 mb-12">
           Get In Touch
         </h2>
 
@@ -64,21 +71,21 @@ export default function ContactSection() {
           onSubmit={handleSubmit}
           className="bg-white/90 backdrop-blur-sm 
            rounded-3xl shadow-xl 
-           border border-gray-200 
+           border border-gray-200 dark:border-slate-800 dark:bg-slate-900/90
            p-10 space-y-6"
         >
           {/* Name */}
           <div>
-            <label className="block mb-2 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 dark:text-slate-300">
               Full Name
             </label>
             <div className="relative">
-              <User className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
+              <User className="absolute left-4 top-3.5 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50  border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-800"
                 placeholder="Your Name"
               />
             </div>
@@ -86,33 +93,50 @@ export default function ContactSection() {
 
           {/* Email */}
           <div>
-            <label className="block mb-2 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 dark:text-slate-300">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
+              <Mail className="absolute left-4 top-3.5 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-800"
                 placeholder="you@example.com"
               />
             </div>
           </div>
 
+          {/* Inquiry Type */}
+          <div>
+            <label className="block mb-2 font-medium text-gray-700 dark:text-slate-300">
+              Inquiry Type
+            </label>
+            <select
+              value={inquiryType}
+              onChange={(e) => setInquiryType(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-slate-50 px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-indigo-500 focus:bg-white transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:focus:bg-slate-800"
+            >
+              <option value="General Inquiry" className="dark:bg-slate-800 dark:text-slate-100">General Inquiry</option>
+              <option value="Support Request" className="dark:bg-slate-800 dark:text-slate-100">Support Request</option>
+              <option value="Feedback" className="dark:bg-slate-800 dark:text-slate-100">Feedback</option>
+              <option value="Partnership" className="dark:bg-slate-800 dark:text-slate-100">Partnership</option>
+            </select>
+          </div>
+
           {/* Message */}
           <div>
-            <label className="block mb-2 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 dark:text-slate-300">
               Message
             </label>
             <div className="relative">
-              <MessageSquare className="absolute left-4 top-4 text-gray-400 w-5 h-5" />
+              <MessageSquare className="absolute left-4 top-4 text-gray-400 dark:text-slate-500 w-5 h-5" />
               <textarea
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-800"
                 placeholder="Write your message..."
               />
             </div>

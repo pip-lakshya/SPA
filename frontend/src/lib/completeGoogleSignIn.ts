@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react"
 import type { Page } from "../app/App"
 import { API_BASE_URL } from "../config/env"
+import { applyTheme, type ThemePreference } from "./theme"
 
 function googleAuthUrl() {
   const path = "/api/auth/google"
@@ -21,7 +22,7 @@ export async function completeGoogleSignIn(
   let data: {
     message?: string
     token?: string
-    user?: { _id: string; name: string; email: string }
+    user?: { _id: string; name: string; email: string; profileImage?: string; themePreference?: ThemePreference }
   } = {}
 
   if (raw) {
@@ -40,6 +41,11 @@ export async function completeGoogleSignIn(
   if (data.message === "Login successful" && data.token && data.user) {
     localStorage.setItem("token", data.token)
     localStorage.setItem("user", JSON.stringify(data.user))
+    if (data.user.themePreference) {
+      applyTheme(data.user.themePreference)
+      localStorage.setItem("theme", data.user.themePreference)
+    }
+    window.dispatchEvent(new Event("profile-updated"))
     setPage("dashboard")
     return
   }
