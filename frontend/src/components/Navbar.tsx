@@ -1,4 +1,4 @@
-import { CircleHelp, GraduationCap, LogOut, MoreVertical, Palette, Settings, UserRound, Code2 } from "lucide-react"
+import { CircleHelp, GraduationCap, LogOut, MoreVertical, Palette, Settings, UserRound, Code2, FileSpreadsheet, TrendingUp, Layers } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import type { Page } from "../app/App"
 import { useUser } from "../context/UserContext"
@@ -91,14 +91,28 @@ export default function Navbar({ setPage }: Props) {
               <button
                 type="button"
                 onClick={() => setPage("home")}
-                className="text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
+                className="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
               >
                 Home
               </button>
               <button
                 type="button"
+                onClick={() => setPage("hub")}
+                className="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
+              >
+                Guide
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage("form")}
+                className="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
+              >
+                Marks data
+              </button>
+              <button
+                type="button"
                 onClick={() => setPage("dashboard")}
-                className="text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
+                className="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-400"
               >
                 Dashboard
               </button>
@@ -125,6 +139,10 @@ export default function Navbar({ setPage }: Props) {
                 </button>
                 {open ? (
                   <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                    {item("Guide", Layers, () => { setOpen(false); setPage("hub") })}
+                    {item("Marks data", FileSpreadsheet, () => { setOpen(false); setPage("form") })}
+                    {item("Dashboard", TrendingUp, () => { setOpen(false); setPage("dashboard") })}
+                    <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
                     {item("My Profile", UserRound, () => profile("Profile"))}
                     {item("Account Settings", Settings, () => profile("Settings"))}
                     {item("Developer Details", Code2, () => profile("Developer"))}

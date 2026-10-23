@@ -46,7 +46,7 @@ export async function completeGoogleSignIn(
       localStorage.setItem("theme", data.user.themePreference)
     }
     window.dispatchEvent(new Event("profile-updated"))
-    setPage("dashboard")
+    setPage("hub")
     return
   }
 

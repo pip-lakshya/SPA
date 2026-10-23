@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { AlertCircle, Plus, Save, Sparkles, Trash2 } from "lucide-react"
+import { AlertCircle, Calendar, GraduationCap, Plus, Save, Sparkles, Trash2 } from "lucide-react"
 import {
   CUSTOM_SUBJECT_VALUE,
   DEPARTMENT_OPTIONS,
@@ -658,19 +658,18 @@ export default function AcademicForm({ onDataChange }: Props) {
   }
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <div className="mb-6">
+    <section className="rounded-[2.25rem] border-2 border-slate-300/80 bg-slate-100/70 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 sm:p-8">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-            Academic Input
-          </p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900">
-            Flexible academic records
+          <div className="inline-flex items-center gap-2 rounded-lg bg-slate-200/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            <GraduationCap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Level 1: Overall Academic Record (All Years)</span>
+          </div>
+          <h2 className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+            Flexible Academic Records
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Use the built-in college presets when they fit, or switch to custom
-            department, course, branch, semester, and subject entries for programs
-            like law or any other stream.
+          <p className="mt-1 max-w-2xl text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
+            Configure your overall degree details below, then manage each individual semester and subject with dedicated color-coded hierarchical blocks.
           </p>
         </div>
       </div>
@@ -681,7 +680,12 @@ export default function AcademicForm({ onDataChange }: Props) {
         </div>
       ) : (
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs dark:border-slate-850 dark:bg-slate-900">
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <GraduationCap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Overall Degree & Branch Details</span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
             <label className="block text-sm font-medium text-slate-700">
               Department
               <select
@@ -697,7 +701,7 @@ export default function AcademicForm({ onDataChange }: Props) {
 
                   handleDepartmentChange(event.target.value)
                 }}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                className="mt-2 w-full rounded-xl border border-slate-300/80 bg-slate-50/80 px-4 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:bg-slate-850"
               >
                 {DEPARTMENT_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -796,6 +800,7 @@ export default function AcademicForm({ onDataChange }: Props) {
                 placeholder="8.75"
               />
             </label>
+            </div>
           </div>
 
           <ImportRecords
@@ -810,11 +815,29 @@ export default function AcademicForm({ onDataChange }: Props) {
             return (
               <div
                 key={`${semester.semester}-${semesterIndex}`}
-                className="rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-5"
+                className="rounded-[2rem] border-2 border-blue-200/90 bg-[#eef4fb] p-5 shadow-xs transition-colors dark:border-blue-900/60 dark:bg-slate-900/90 sm:p-6"
               >
+                {/* Level 2: Semester Header Banner */}
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 pb-3 dark:border-blue-900/50">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-xs">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>Level 2</span>
+                    </span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {semester.semester || `Semester ${semesterIndex + 1}`}
+                    </span>
+                    <span className="rounded-full bg-blue-100/80 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                      {semester.subjects.length} {semester.subjects.length === 1 ? "subject" : "subjects"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Same Semester Block
+                  </span>
+                </div>
                 <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-end">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Semester
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    Select Semester
                       <select
                       value={
                         semesterOptions.includes(semester.semester)
@@ -851,8 +874,8 @@ export default function AcademicForm({ onDataChange }: Props) {
                     ) : null}
                   </label>
 
-                  <label className="block text-sm font-medium text-slate-700">
-                    SGPA
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                    Semester SGPA
                     <input
                       type="number"
                       min="0"
@@ -885,10 +908,30 @@ export default function AcademicForm({ onDataChange }: Props) {
                     return (
                       <div
                         key={`${semesterIndex}-${subjectIndex}`}
-                        className="rounded-3xl border border-slate-200 bg-white p-4"
+                        className="rounded-2xl border border-slate-200/90 border-l-4 border-l-blue-600 bg-white p-4.5 shadow-xs transition-all hover:border-slate-300 hover:shadow-sm dark:border-slate-750 dark:border-l-blue-500 dark:bg-slate-850 sm:p-5"
                       >
-                        <div className="grid gap-4 xl:grid-cols-[2fr_1fr_1fr_auto]">
-                          <label className="block text-sm font-medium text-slate-700">
+                        {/* Level 3: Subject Header */}
+                        <div className="mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-50 text-[11px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                              #{subjectIndex + 1}
+                            </span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Subject Details
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSubject(semesterIndex, subjectIndex)}
+                            disabled={semester.subjects.length === 1}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Remove</span>
+                          </button>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[2fr_1.2fr_1fr]">
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                             Subject
                             <select
                               value={subject.selectedSubject}
@@ -900,7 +943,7 @@ export default function AcademicForm({ onDataChange }: Props) {
                                   event.target.value
                                 )
                               }
-                              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                              className="mt-1.5 w-full rounded-xl border border-slate-300/80 bg-slate-50/80 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:bg-slate-800"
                             >
                               <option value="">Select subject</option>
                               {subjectOptions.map((option) => (
@@ -912,7 +955,7 @@ export default function AcademicForm({ onDataChange }: Props) {
                             </select>
                           </label>
 
-                          <label className="block text-sm font-medium text-slate-700">
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                             Domain
                             <select
                               value={subject.domain}
@@ -924,7 +967,7 @@ export default function AcademicForm({ onDataChange }: Props) {
                                   event.target.value
                                 )
                               }
-                              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                              className="mt-1.5 w-full rounded-xl border border-slate-300/80 bg-slate-50/80 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:bg-slate-800"
                             >
                               {DOMAIN_OPTIONS.map((option) => (
                                 <option key={option} value={option}>
@@ -934,8 +977,8 @@ export default function AcademicForm({ onDataChange }: Props) {
                             </select>
                           </label>
 
-                          <label className="block text-sm font-medium text-slate-700">
-                            Marks
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Marks (0-100)
                             <input
                               type="number"
                               min="0"
@@ -950,24 +993,16 @@ export default function AcademicForm({ onDataChange }: Props) {
                                   event.target.value
                                 )
                               }
-                              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
+                              className="mt-1.5 w-full rounded-xl border border-slate-300/80 bg-slate-50/80 px-3.5 py-2.5 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:bg-slate-800"
                               placeholder="91"
                             />
                           </label>
 
-                          <button
-                            type="button"
-                            onClick={() => removeSubject(semesterIndex, subjectIndex)}
-                            disabled={semester.subjects.length === 1}
-                            className="inline-flex items-center justify-center gap-2 self-end rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Remove
-                          </button>
+
                         </div>
 
                         {subject.selectedSubject === CUSTOM_SUBJECT_VALUE ? (
-                          <label className="mt-4 block text-sm font-medium text-slate-700">
+                          <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                             Custom Subject Name
                             <input
                               type="text"
@@ -980,8 +1015,8 @@ export default function AcademicForm({ onDataChange }: Props) {
                                   event.target.value
                                 )
                               }
-                              className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500"
-                              placeholder="Enter subject name"
+                              className="mt-1.5 w-full rounded-xl border border-slate-300/80 bg-slate-50/80 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:bg-slate-800"
+                              placeholder="e.g. Distributed Operating Systems"
                             />
                           </label>
                         ) : null}
@@ -1001,10 +1036,10 @@ export default function AcademicForm({ onDataChange }: Props) {
                   <button
                     type="button"
                     onClick={() => addSubject(semesterIndex)}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-white/80 px-4 py-2.5 text-xs font-bold text-blue-700 shadow-2xs transition hover:border-blue-500 hover:bg-blue-50 active:scale-95 dark:border-blue-800 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-750"
                   >
                     <Plus className="h-4 w-4" />
-                    Add Subject
+                    <span>Add Another Subject</span>
                   </button>
                 </div>
               </div>

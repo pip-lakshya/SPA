@@ -17,11 +17,13 @@ import {
   ChartColumn,
   Gauge,
   Layers3,
-  Sparkles
+  Sparkles,
+  ArrowLeft,
+  ArrowRight,
+  FileSpreadsheet
 } from "lucide-react"
 import type { Page } from "../app/App"
 import Navbar from "../components/Navbar"
-import AcademicForm from "../components/AcademicForm"
 import Leaderboard from "../components/Leaderboard"
 import { domainKeyToLabelMap } from "../data/academicCatalog"
 import type { AcademicSnapshot, PeerClusterStudent } from "../types/academic"
@@ -117,7 +119,24 @@ export default function Dashboard({ setPage }: Props) {
 
     if (!token) {
       setPage("login")
+      return
     }
+
+    const fetchAcademicData = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/data/me"), {
+          headers: { Authorization: token }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setSnapshot({ data: data.data, analytics: data.analytics })
+        }
+      } catch (err) {
+        console.error("Failed to load academic data for dashboard", err)
+      }
+    }
+
+    void fetchAcademicData()
   }, [setPage])
 
   useEffect(() => {
@@ -259,6 +278,38 @@ export default function Dashboard({ setPage }: Props) {
 
       <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-8">
+          {/* Direct Navigation & Breadcrumb Switcher */}
+          <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage("hub")}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Guide</span>
+              </button>
+              <span className="text-slate-300 dark:text-slate-700">/</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                Dashboard
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-slate-500 sm:inline dark:text-slate-400">
+                Need to add or edit marks?
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage("form")}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:from-indigo-500 hover:to-purple-500 active:scale-95"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Open Marks data →</span>
+              </button>
+            </div>
+          </div>
+
           <section className="overflow-hidden rounded-[2rem] bg-slate-900 text-white shadow-xl">
             <div className="grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[1.5fr_1fr] lg:px-10">
               <div>
@@ -650,8 +701,32 @@ export default function Dashboard({ setPage }: Props) {
             <Leaderboard title="Branch Leaderboard" scope="branch" />
           </section>
 
-          <section id="academic-input">
-            <AcademicForm onDataChange={setSnapshot} />
+          {/* Bottom Switcher CTA Banner */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  <FileSpreadsheet className="h-5 w-5" />
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Need to add another semester or update marks?
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Switch to the Academic Input Form to add new subjects, upload marksheets, or edit marks.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPage("form")}
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-indigo-700 active:scale-95"
+              >
+                <span>Enter Marks data</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
           </section>
         </div>
       </main>

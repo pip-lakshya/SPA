@@ -39,7 +39,7 @@ export default function Login({ setPage }: Props) {
           localStorage.setItem("theme", themePref)
         }
         window.dispatchEvent(new Event("profile-updated"))
-        setPage("dashboard")
+        setPage("hub")
       } else {
         alert(data.message)
       }
