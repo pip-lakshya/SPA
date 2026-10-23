@@ -74,7 +74,7 @@ export default function Navbar({ setPage }: Props) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <button
           type="button"
-          onClick={() => setPage(loggedIn ? "dashboard" : "home")}
+          onClick={() => setPage("home")}
           className="flex items-center gap-3"
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600">

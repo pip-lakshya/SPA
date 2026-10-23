@@ -168,6 +168,22 @@ export default function Dashboard({ setPage }: Props) {
         .map(([key, label]) => ({
           key,
           label,
+          shortLabel:
+            key === "Mechanical_Civil"
+              ? "Mech"
+              : key === "AI_DS_IT"
+              ? "AI/DS"
+              : key === "CoreEngineering"
+              ? "Core CS"
+              : key === "Mathematics"
+              ? "Math"
+              : key === "Management"
+              ? "Soft Skills"
+              : key === "CS_IT"
+              ? "Coding"
+              : key === "Electronics"
+              ? "ECE"
+              : label,
           value: Number(domainAverages?.[key as keyof typeof domainAverages] || 0)
         }))
         .filter((entry) => entry.value > 0),
@@ -362,21 +378,38 @@ export default function Dashboard({ setPage }: Props) {
               <p className="mt-1 text-sm text-slate-500">
                 Domain averages are grouped from all saved subjects.
               </p>
-              <div className="mt-6 h-72">
+              <div className="mt-6 h-80 w-full overflow-x-auto">
                 {domainEntries.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={domainEntries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="label" angle={-20} textAnchor="end" height={70} interval={0} />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="value" radius={[12, 12, 0, 0]}>
-                        {domainEntries.map((entry) => (
-                          <Cell key={entry.key} fill={entry.key === strongestDomain?.key ? "#0f766e" : "#6366f1"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="h-full min-w-[300px] sm:min-w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={domainEntries} margin={{ top: 10, right: 10, left: -20, bottom: 35 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="shortLabel"
+                          angle={-35}
+                          textAnchor="end"
+                          height={55}
+                          interval={0}
+                          tick={{ fontSize: 11, fill: "#64748b" }}
+                          dx={-2}
+                          dy={4}
+                        />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} />
+                        <Tooltip
+                          formatter={(val: any) => [`${Number(val).toFixed(2)}%`, "Average"]}
+                          labelFormatter={(shortLabel: any) => {
+                            const match = domainEntries.find((d) => d.shortLabel === shortLabel)
+                            return match ? match.label : shortLabel
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                          {domainEntries.map((entry) => (
+                            <Cell key={entry.key} fill={entry.key === strongestDomain?.key ? "#0f766e" : "#6366f1"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 ) : (
                   <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
                     Domain analytics will appear here after your first save.

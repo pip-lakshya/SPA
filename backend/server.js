@@ -30,6 +30,7 @@ app.use("/api/auth", require("./routes/authRoutes"))
 app.use("/api/data", require("./routes/dataRoutes"))
 app.use("/api/marksheet", require("./routes/marksheetRoutes"))
 app.use("/api/profile", require("./routes/profileRoutes"))
+app.use("/api/ai", require("./routes/aiRoutes"))
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ message: "API route not found" })

@@ -1,11 +1,17 @@
 const jwt = require("jsonwebtoken")
 
 const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization
+  const rawToken = req.headers.authorization
   const jwtSecret = process.env.JWT_SECRET || "secretkey123"
 
-  if (!token) {
+  if (!rawToken) {
     return res.status(401).json({ message: "No token" })
+  }
+
+  const token = rawToken.replace(/^Bearer\s+/i, "").trim()
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" })
   }
 
   try {
