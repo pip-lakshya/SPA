@@ -117,10 +117,17 @@ exports.exportData = handle(async (req, res) => {
 exports.deleteAccount = handle(async (req, res) => {
   const user = await User.findById(req.user.id)
   if (!user) return res.status(404).json({ message: "User not found" })
-  if (user.password && !(await bcrypt.compare(String(req.body?.password || ""), user.password))) {
-    return res.status(400).json({ message: "Password confirmation is required" })
+  if (user.password) {
+    const provided = String(req.body?.password || "").trim()
+    if (!provided) {
+      return res.status(400).json({ message: "Please enter your password to confirm account deletion" })
+    }
+    const isMatch = await bcrypt.compare(provided, user.password)
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect password. Please try again." })
+    }
   }
   await AcademicData.deleteOne({ userId: user._id })
   await User.deleteOne({ _id: user._id })
-  res.json({ message: "Account deleted" })
+  res.json({ message: "Account deleted successfully" })
 })

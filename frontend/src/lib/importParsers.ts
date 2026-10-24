@@ -3,6 +3,39 @@ import { inferDomainForSubject, normalizeDomainLabel } from "../data/academicCat
 export type ImportedSubject = { name: string; marks: number; domain?: string; lowConfidence?: boolean }
 export type ImportedRecord = { semester?: string; sgpa?: number | null; subjects: ImportedSubject[] }
 
+export type ParsedSemester = {
+  semester: string
+  sgpa: number | null
+  subjects: Array<{ name: string; marks: number; domain?: string; lowConfidence?: boolean }>
+}
+
+export type MultiSemesterImport = {
+  semesters: ParsedSemester[]
+}
+
+export const AI_CSV_PROMPT = `Convert this academic marksheet (or PDF / image / text) into clean CSV data.
+
+Output ONLY the raw CSV text. Do NOT wrap in markdown code blocks, do NOT write explanations.
+
+Format:
+Semester,SGPA,Subject,Marks
+
+Rules:
+1. "Semester": Standard format like Sem 1, Sem 2, Sem 3, etc. (or Semester 1, 2, etc.)
+2. "SGPA": The SGPA for that specific semester (e.g. 8.45). If unavailable, leave empty.
+3. "Subject": Clean subject name only (e.g. "Data Structures and Algorithms") without course codes or serial numbers.
+4. "Marks": Numerical score (0-100).
+5. If multiple semesters exist on the marksheet, output rows for all semesters in order.
+6. Omit non-graded or audit subjects without marks.
+
+Example Output:
+Semester,SGPA,Subject,Marks
+Sem 1,8.40,Engineering Mathematics,85
+Sem 1,8.40,Programming in C,92
+Sem 1,8.40,Basic Electrical Engineering,78
+Sem 2,8.75,Data Structures and Algorithms,88
+Sem 2,8.75,Digital Electronics,82`
+
 const romanMap: Record<string, number> = {
   i: 1,
   ii: 2,
@@ -16,19 +49,149 @@ const romanMap: Record<string, number> = {
 
 const clean = (value: string) => value.replace(/\t/g, " ").replace(/\s+/g, " ").trim()
 
-/**
- * Strips serial numbers and trailing delimiters without stripping leading English letters like M or D.
- */
-const cleanSubjectTitle = (value: string) => {
+export const cleanSubjectTitle = (value: string) => {
   let s = clean(value)
-  // Strip leading serial numbers with delimiters e.g. "1.", "1)", "1-", "I.", "I)", "S.No 1"
   s = s.replace(/^\s*(?:s\.?\s*no\.?\s*)?\d+[.)-]\s*/i, "")
   s = s.replace(/^\s*[ivxlcdm]+[.)-]\s*/i, "")
-  // Strip standalone leading numbers e.g. "01 "
   s = s.replace(/^\s*\d+\s{2,}/, "")
-  // Strip any leading/trailing pipe, colon, dash, comma, equals symbols and whitespace
   s = s.replace(/^[|:\s,=-]+|[|:\s,=-]+$/g, "").trim()
   return s
+}
+
+export const normalizeSemesterName = (raw: string): string => {
+  if (!raw) return "Sem 1"
+  const m = raw.match(/(?:semester|sem|term)?\s*([ivxlcdm]+|\d+)/i)
+  if (m) {
+    const val = m[1].toLowerCase()
+    if (/^\d+$/.test(val)) return `Sem ${val}`
+    if (romanMap[val]) return `Sem ${romanMap[val]}`
+  }
+  return raw.trim() || "Sem 1"
+}
+
+function parseLineCells(line: string): string[] {
+  let s = line.trim()
+  if (s.startsWith("|") && s.endsWith("|")) {
+    s = s.slice(1, -1)
+    return s.split("|").map((c) => c.trim())
+  }
+  if (s.includes("\t")) {
+    return s.split("\t").map((c) => c.trim())
+  }
+  const matches: string[] = []
+  const regex = /(?:^|,)(?:"([^"]*)"|([^,]*))/g
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(s)) !== null) {
+    const val = match[1] !== undefined ? match[1] : match[2]
+    matches.push(val.trim())
+  }
+  return matches
+}
+
+/**
+ * Parses CSV/TSV/Markdown table containing Semester,SGPA,Subject,Marks
+ * Automatically groups rows by semester!
+ */
+export function parseAcademicCsv(text: string): MultiSemesterImport {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  if (!lines.length) return { semesters: [] }
+
+  let semCol = -1
+  let sgpaCol = -1
+  let subCol = -1
+  let marksCol = -1
+  let domCol = -1
+
+  const semestersMap = new Map<string, ParsedSemester>()
+  let currentDefaultSem = "Sem 1"
+  let currentDefaultSgpa: number | null = null
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (/^[|\s\-:]+$/.test(line)) continue // skip markdown table borders e.g. |---|---|
+
+    const cells = parseLineCells(line)
+    if (!cells.length || cells.every((c) => !c)) continue
+
+    // Header row detection
+    const isHeader = cells.some((c) =>
+      /^(?:semester|sem|sgpa|gpa|subject|course|marks|mark|score)$/i.test(c)
+    )
+    if (isHeader) {
+      cells.forEach((c, idx) => {
+        if (/^(?:semester|sem|term)$/i.test(c)) semCol = idx
+        else if (/^(?:sgpa|gpa|cgpa)$/i.test(c)) sgpaCol = idx
+        else if (/^(?:subject|course|subject\s*name|name|paper)$/i.test(c)) subCol = idx
+        else if (/^(?:marks|mark|score|percentage)$/i.test(c)) marksCol = idx
+        else if (/^(?:domain|category|field)$/i.test(c)) domCol = idx
+      })
+      continue
+    }
+
+    // Default column order heuristics if no explicit header matched
+    if (subCol === -1 || marksCol === -1) {
+      if (cells.length >= 4) {
+        semCol = 0
+        sgpaCol = 1
+        subCol = 2
+        marksCol = 3
+      } else if (cells.length === 3) {
+        semCol = 0
+        subCol = 1
+        marksCol = 2
+      } else if (cells.length === 2) {
+        subCol = 0
+        marksCol = 1
+      }
+    }
+
+    const semRaw = semCol >= 0 && cells[semCol] ? cells[semCol] : currentDefaultSem
+    const sgpaRaw: string | number | null = sgpaCol >= 0 && cells[sgpaCol] ? cells[sgpaCol] : currentDefaultSgpa
+    const subRaw = subCol >= 0 ? cells[subCol] : cells[0]
+    const marksRaw = marksCol >= 0 ? cells[marksCol] : cells[1]
+    const domRaw = domCol >= 0 ? cells[domCol] : undefined
+
+    const markNum = Number(marksRaw)
+    if (!Number.isFinite(markNum) || markNum < 0 || markNum > 100) continue
+
+    const cleanedTitle = cleanSubjectTitle(subRaw)
+    if (!cleanedTitle || /^(?:subject|marks|semester|sgpa|score)$/i.test(cleanedTitle)) continue
+
+    const activeSem = normalizeSemesterName(semRaw)
+    currentDefaultSem = activeSem
+
+    let activeSgpa: number | null = null
+    if (sgpaRaw !== null && sgpaRaw !== undefined && sgpaRaw !== "") {
+      const parsedSgpa: number = typeof sgpaRaw === "number" ? sgpaRaw : Number(sgpaRaw)
+      if (Number.isFinite(parsedSgpa) && parsedSgpa >= 0 && parsedSgpa <= 10) {
+        activeSgpa = parsedSgpa
+        currentDefaultSgpa = activeSgpa
+      }
+    }
+
+    if (!semestersMap.has(activeSem)) {
+      semestersMap.set(activeSem, {
+        semester: activeSem,
+        sgpa: activeSgpa,
+        subjects: []
+      })
+    }
+
+    const semRecord = semestersMap.get(activeSem)!
+    if (activeSgpa !== null && semRecord.sgpa === null) {
+      semRecord.sgpa = activeSgpa
+    }
+
+    const inferredDomain = domRaw ? clean(domRaw) : inferDomainForSubject(cleanedTitle)
+    semRecord.subjects.push({
+      name: cleanedTitle,
+      marks: Math.round(markNum),
+      domain: inferredDomain ? normalizeDomainLabel(inferredDomain) : "General",
+      lowConfidence: !inferredDomain
+    })
+  }
+
+  return { semesters: Array.from(semestersMap.values()) }
 }
 
 const semester = (line: string) => {
@@ -44,7 +207,6 @@ const subject = (name: string, marks: string | number, domain?: string): Importe
   const score = typeof marks === "number" ? marks : Number(marks)
   const title = cleanSubjectTitle(name)
 
-  // Ignore header rows or invalid titles or missing scores
   if (
     !title ||
     /^(?:subject|course|subject\s*name|name)$/i.test(title) ||
@@ -65,6 +227,16 @@ const subject = (name: string, marks: string | number, domain?: string): Importe
 }
 
 export const txtParser = (text: string): ImportedRecord => {
+  // First attempt multi-semester CSV parsing in case user pasted CSV into text
+  const multi = parseAcademicCsv(text)
+  if (multi.semesters.length > 0) {
+    return {
+      semester: multi.semesters[0].semester,
+      sgpa: multi.semesters[0].sgpa,
+      subjects: multi.semesters[0].subjects
+    }
+  }
+
   const lines = text.split(/\r?\n/).map(clean).filter(Boolean)
   let sem: string | undefined
   let sgpa: number | null = null
@@ -72,23 +244,18 @@ export const txtParser = (text: string): ImportedRecord => {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
-
-    // 1. Check semester
     sem ||= semester(line)
 
-    // 2. Check SGPA
     const sgpaMatch = line.match(/sgpa\s*[:=-]?\s*(\d+(?:\.\d+)?)/i)
     if (sgpaMatch) {
       sgpa = Number(sgpaMatch[1])
       continue
     }
 
-    // 3. Skip header lines like "Subject | Marks" or "Subject, Marks"
     if (/^(?:subject|course)\s*(?:\||:|,|=|-)\s*(?:marks|mark|score)$/i.test(line)) {
       continue
     }
 
-    // 4. Try matching "Subject Name | 83" or "Subject Name: 83" or "Subject Name 83"
     const pair = line.match(/^(.+?)\s*(?:\||:|,|=|-)\s*(\d{1,3}(?:\.\d+)?)\s*$/)
     const splitRow = pair ? subject(pair[1], pair[2]) : null
     if (splitRow) {
@@ -96,7 +263,6 @@ export const txtParser = (text: string): ImportedRecord => {
       continue
     }
 
-    // 5. Try space-separated subject and mark at end of line (e.g. "Data Structure 84")
     const spacePair = line.match(/^([a-zA-Z\s&().\-\/]+?)\s+(\d{1,3}(?:\.\d+)?)\s*$/)
     if (spacePair && !/^(?:semester|sem|sgpa)/i.test(spacePair[1])) {
       const spaceRow = subject(spacePair[1], spacePair[2])
@@ -106,7 +272,6 @@ export const txtParser = (text: string): ImportedRecord => {
       }
     }
 
-    // 6. Wrapped mark on next line
     const wrappedMark = lines[index + 1]?.match(/^(\d{1,3}(?:\.\d+)?)$/)
     if (wrappedMark && !/^(?:semester|sem|sgpa)/i.test(line)) {
       const wrapped = subject(line, wrappedMark[1])
@@ -123,92 +288,13 @@ export const txtParser = (text: string): ImportedRecord => {
 export const erpTextParser = txtParser
 
 export const csvParser = (text: string): ImportedRecord => {
-  const rawRows = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-  if (!rawRows.length) return { subjects: [] }
-
-  let sem: string | undefined
-  let sgpa: number | null = null
-  const subjects: ImportedSubject[] = []
-
-  let subjectCol = 0
-  let marksCol = 1
-  let domainCol = -1
-
-  for (const rawLine of rawRows) {
-    const cells = rawLine.split(",").map((c) => clean(c.replace(/^"|"$/g, "")))
-    if (!cells.some(Boolean)) continue
-
-    // 1. Check Semester in line
-    if (!sem) {
-      const semFound =
-        semester(rawLine) ||
-        (cells[0] && /semester|sem/i.test(cells[0])
-          ? semester(cells[1] || "") || cleanSubjectTitle(cells[1])
-          : undefined)
-      if (semFound) {
-        sem = semFound
-        continue
-      }
-    }
-
-    // 2. Check SGPA in line
-    if (sgpa === null) {
-      const sgpaMatch = rawLine.match(/sgpa\s*[:,-]?\s*(\d+(?:\.\d+)?)/i)
-      if (sgpaMatch) {
-        sgpa = Number(sgpaMatch[1])
-        continue
-      }
-      if (/sgpa/i.test(cells[0]) && cells[1] && Number.isFinite(Number(cells[1]))) {
-        sgpa = Number(cells[1])
-        continue
-      }
-    }
-
-    // 3. Header row detection (e.g. "Subject,Marks" or "Subject,Domain,Marks")
-    const isHeaderRow =
-      cells.some((c) => /^(?:subject|course|name|subject\s*name)$/i.test(c)) &&
-      cells.some((c) => /^(?:marks|mark|score|grade)$/i.test(c))
-
-    if (isHeaderRow) {
-      const sIdx = cells.findIndex((c) => /^(?:subject|course|name|subject\s*name)$/i.test(c))
-      const mIdx = cells.findIndex((c) => /^(?:marks|mark|score|grade)$/i.test(c))
-      const dIdx = cells.findIndex((c) => /^(?:domain|category|field)$/i.test(c))
-
-      if (sIdx >= 0) subjectCol = sIdx
-      if (mIdx >= 0) marksCol = mIdx
-      if (dIdx >= 0) domainCol = dIdx
-      continue
-    }
-
-    // 4. Try row with column mapping
-    const nameVal = cells[subjectCol] ?? cells[0] ?? ""
-    const markVal = cells[marksCol] ?? cells[1] ?? ""
-    const domainVal = domainCol >= 0 ? cells[domainCol] : undefined
-
-    const parsed = subject(nameVal, markVal, domainVal)
-    if (parsed) {
-      subjects.push(parsed)
-    } else {
-      // Fallback: search row for numeric cell (0-100) and title cell
-      if (cells.length >= 2) {
-        const numIdx = cells.findIndex((c) => {
-          const n = Number(c)
-          return c !== "" && Number.isFinite(n) && n >= 0 && n <= 100
-        })
-        if (numIdx >= 0) {
-          const titleIdx = cells.findIndex(
-            (c, i) => i !== numIdx && Boolean(c) && !/^(?:semester|sem|sgpa)$/i.test(c)
-          )
-          if (titleIdx >= 0) {
-            const fallbackSubject = subject(cells[titleIdx], cells[numIdx], domainVal)
-            if (fallbackSubject) {
-              subjects.push(fallbackSubject)
-            }
-          }
-        }
-      }
+  const multi = parseAcademicCsv(text)
+  if (multi.semesters.length > 0) {
+    return {
+      semester: multi.semesters[0].semester,
+      sgpa: multi.semesters[0].sgpa,
+      subjects: multi.semesters[0].subjects
     }
   }
-
-  return { semester: sem, sgpa, subjects }
+  return { subjects: [] }
 }

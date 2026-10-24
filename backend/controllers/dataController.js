@@ -174,12 +174,15 @@ const validatePayload = ({ department, course, branch, cgpa, semesters }) => {
     return "Branch is required"
   }
 
-  if (!Number.isFinite(cgpa) || cgpa < 0 || cgpa > 10) {
-    return "CGPA must be between 0 and 10"
+  if (cgpa !== null && cgpa !== undefined && cgpa !== "" && !Number.isNaN(Number(cgpa))) {
+    const numCgpa = Number(cgpa)
+    if (Number.isFinite(numCgpa) && (numCgpa < 0 || numCgpa > 10)) {
+      return "CGPA must be between 0 and 10"
+    }
   }
 
-  if (!Array.isArray(semesters) || !semesters.length) {
-    return "At least one semester is required"
+  if (!Array.isArray(semesters)) {
+    return "Semesters must be an array"
   }
 
   for (const semester of semesters) {

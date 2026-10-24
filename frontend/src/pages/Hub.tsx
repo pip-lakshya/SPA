@@ -19,25 +19,28 @@ type Props = {
   setPage: React.Dispatch<React.SetStateAction<Page>>
 }
 
-export const AI_MARKSHEET_PROMPT = `Convert this academic marksheet into plain text.
+export const AI_MARKSHEET_PROMPT = `Convert this academic marksheet (or PDF / image / text) into clean CSV data.
 
-Return ONLY plain text.
-No markdown code blocks.
-No explanations.
+Output ONLY the raw CSV text. Do NOT wrap in markdown code blocks, do NOT write explanations.
 
-Use exactly this format:
-
-Semester: <semester number, e.g. 3>
-SGPA: <sgpa e.g. 8.5 if available>
-
-Subject Name | Marks
+Format:
+Semester,SGPA,Subject,Marks
 
 Rules:
-- Ignore logos, student details, roll numbers, remarks, pass/fail, course codes
-- Keep only theory and practical subject rows
-- Use exact subject names where readable
-- Marks must be 0-100 number only
-- Use | as separator`
+1. "Semester": Standard format like Sem 1, Sem 2, Sem 3, etc. (or Semester 1, 2, etc.)
+2. "SGPA": The SGPA for that specific semester (e.g. 8.45). If unavailable, leave empty.
+3. "Subject": Clean subject name only (e.g. "Data Structures and Algorithms") without course codes or serial numbers.
+4. "Marks": Numerical score (0-100).
+5. If multiple semesters exist on the marksheet, output rows for all semesters in order.
+6. Omit non-graded or audit subjects without marks.
+
+Example Output:
+Semester,SGPA,Subject,Marks
+Sem 1,8.40,Engineering Mathematics,85
+Sem 1,8.40,Programming in C,92
+Sem 1,8.40,Basic Electrical Engineering,78
+Sem 2,8.75,Data Structures and Algorithms,88
+Sem 2,8.75,Digital Electronics,82`
 
 export default function Hub({ setPage }: Props) {
   const { user } = useUser()

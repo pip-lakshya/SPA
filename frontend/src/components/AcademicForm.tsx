@@ -16,6 +16,7 @@ import {
 } from "../data/academicCatalog"
 import type { AcademicApiResponse, AcademicSnapshot } from "../types/academic"
 import ImportRecords from "./ImportRecords"
+import type { ParsedSemester } from "../lib/importParsers"
 import { apiUrl } from "../lib/apiUrl"
 
 const DATA_BASE_PATH = "/api/data"
@@ -168,17 +169,19 @@ const validateAcademicForm = (
     return "Course is required"
   }
 
-  if (!cgpa.trim()) {
-    return "CGPA is required"
+  if (semesters.length > 0) {
+    if (!cgpa.trim()) {
+      return "CGPA is required"
+    }
+
+    const cgpaNumber = Number(cgpa)
+    if (!Number.isFinite(cgpaNumber) || cgpaNumber < 0 || cgpaNumber > 10) {
+      return "CGPA must be between 0 and 10"
+    }
   }
 
-  const cgpaNumber = Number(cgpa)
-  if (!Number.isFinite(cgpaNumber) || cgpaNumber < 0 || cgpaNumber > 10) {
-    return "CGPA must be between 0 and 10"
-  }
-
-  if (!semesters.length) {
-    return "Add at least one semester"
+  if (semesters.length === 0) {
+    return null
   }
 
   const seenSemesters = new Set<string>()
@@ -497,9 +500,7 @@ export default function AcademicForm({ onDataChange }: Props) {
 
   const removeSemester = (semesterIndex: number) => {
     setSemesters((currentSemesters) =>
-      currentSemesters.length === 1
-        ? currentSemesters
-        : currentSemesters.filter((_, index) => index !== semesterIndex)
+      currentSemesters.filter((_, index) => index !== semesterIndex)
     )
     setSuccessMessage("")
   }
@@ -636,6 +637,75 @@ export default function AcademicForm({ onDataChange }: Props) {
       "OCR data merged into the selected semester block. Review the fields, then save when ready."
     )
     setError("")
+  }
+
+  const applyMultiSemesterImport = (
+    importedSemesters: ParsedSemester[],
+    source: string = "AI CSV"
+  ) => {
+    if (!importedSemesters || !importedSemesters.length) return
+
+    setSemesters((currentSemesters) => {
+      // If current form is empty or has only 1 untouched semester
+      const isUntouched =
+        currentSemesters.length === 0 ||
+        (currentSemesters.length === 1 &&
+          (!currentSemesters[0].sgpa || currentSemesters[0].sgpa === "") &&
+          currentSemesters[0].subjects.every((s) => !s.marks && !s.customSubject && !s.selectedSubject))
+
+      if (isUntouched) {
+        return importedSemesters.map((imp) => ({
+          semester: imp.semester,
+          sgpa: imp.sgpa !== null && Number.isFinite(imp.sgpa) ? String(imp.sgpa) : "",
+          subjects: imp.subjects.length > 0
+            ? imp.subjects.map((sub) => mapFetchedSemester(department, imp.semester, sub))
+            : [createEmptySubject()]
+        }))
+      }
+
+      // Merge or append into existing
+      const updated = [...currentSemesters]
+      importedSemesters.forEach((imp) => {
+        const existingIdx = updated.findIndex(
+          (s) => s.semester.toLowerCase().trim() === imp.semester.toLowerCase().trim()
+        )
+        const mappedSubjects = imp.subjects.length > 0
+          ? imp.subjects.map((sub) => mapFetchedSemester(department, imp.semester, sub))
+          : [createEmptySubject()]
+
+        if (existingIdx >= 0) {
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            semester: imp.semester,
+            sgpa: imp.sgpa !== null && Number.isFinite(imp.sgpa) ? String(imp.sgpa) : updated[existingIdx].sgpa,
+            subjects: mappedSubjects
+          }
+        } else {
+          updated.push({
+            semester: imp.semester,
+            sgpa: imp.sgpa !== null && Number.isFinite(imp.sgpa) ? String(imp.sgpa) : "",
+            subjects: mappedSubjects
+          })
+        }
+      })
+      return updated
+    })
+
+    // Compute average SGPA for CGPA if empty
+    const sgpaList = importedSemesters
+      .map((s) => s.sgpa)
+      .filter((v): v is number => v !== null && Number.isFinite(v))
+    if (sgpaList.length > 0 && (!cgpa || cgpa === "0" || cgpa === "")) {
+      const avg = sgpaList.reduce((a, b) => a + b, 0) / sgpaList.length
+      setCgpa(avg.toFixed(2))
+    }
+
+    const totalSubCount = importedSemesters.reduce((acc, s) => acc + s.subjects.length, 0)
+    setSuccessMessage(
+      `${source}: Successfully imported ${importedSemesters.length} semester(s) with ${totalSubCount} subject(s)! Review and click Save.`
+    )
+    setError("")
+    window.setTimeout(() => document.getElementById("academic-save")?.click(), 100)
   }
 
   const applyImportedRecord = (
@@ -805,11 +875,33 @@ export default function AcademicForm({ onDataChange }: Props) {
 
           <ImportRecords
             onImport={applyImportedRecord}
+            onImportMulti={applyMultiSemesterImport}
             onManualEntry={() => document.getElementById("semester-blocks")?.scrollIntoView({ behavior: "smooth", block: "start" })}
           />
 
           <div id="semester-blocks" className="space-y-6">
-          {semesters.map((semester, semesterIndex) => {
+          {semesters.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/40 p-8 text-center dark:border-blue-900/40 dark:bg-slate-900/40">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <h3 className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
+                No Semesters Added Yet
+              </h3>
+              <p className="mx-auto mt-1 max-w-md text-xs text-slate-500 dark:text-slate-400">
+                You have cleared all semesters. Start fresh by clicking "Add Semester" below or pasting your marksheet data using the AI Import tool above.
+              </p>
+              <button
+                type="button"
+                onClick={addSemester}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add First Semester</span>
+              </button>
+            </div>
+          ) : (
+          semesters.map((semester, semesterIndex) => {
             const semesterChoices = getAvailableSemesterChoices(semesterIndex)
 
             return (
@@ -893,7 +985,6 @@ export default function AcademicForm({ onDataChange }: Props) {
                   <button
                     type="button"
                     onClick={() => removeSemester(semesterIndex)}
-                    disabled={semesters.length === 1}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1044,7 +1135,8 @@ export default function AcademicForm({ onDataChange }: Props) {
                 </div>
               </div>
             )
-          })}
+          })
+          )}
           </div>
 
           {validationError ? (

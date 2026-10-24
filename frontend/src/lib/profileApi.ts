@@ -107,6 +107,17 @@ export async function removeAvatar() {
   return data as { message: string; user: StoredUser }
 }
 
+export async function deleteAccount(password?: string) {
+  const res = await fetch(apiUrl("/api/profile/account"), {
+    method: "DELETE",
+    headers: authHeaders(),
+    body: JSON.stringify({ password: password || "" })
+  })
+  const data = await parseJson(res)
+  if (!res.ok) throw new Error(data.message || "Failed to delete account")
+  return data as { message: string }
+}
+
 export function persistUser(user: StoredUser) {
   const current = JSON.parse(localStorage.getItem("user") || "{}") as StoredUser
   const merged = { ...current, ...user }
